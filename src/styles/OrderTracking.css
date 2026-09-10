@@ -1,0 +1,528 @@
+/* ========================================
+   SUIVI COMMANDE
+======================================== */
+
+.order-tracking-page {
+  min-height: 100vh;
+  background: #f8f8f6;
+}
+
+/* ========================================
+   HEADER
+======================================== */
+
+.order-tracking-header {
+  padding: 45px 0;
+  background: #eef5ef;
+  border-bottom: 1px solid #e2ebe4;
+}
+
+.order-tracking-kicker {
+  display: block;
+  margin-bottom: 10px;
+  color: #16834b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.order-tracking-header h1 {
+  margin: 0 0 8px;
+  color: #222;
+  font-size: 38px;
+}
+
+.order-tracking-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* ========================================
+   CONTENU
+======================================== */
+
+.order-tracking-content {
+  padding: 35px 0 80px;
+}
+
+/* ========================================
+   RECHERCHE
+======================================== */
+
+.tracking-search-card {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 20px;
+  padding: 25px;
+  border: 1px solid #e5e5e5;
+  border-radius: 14px;
+  background: white;
+}
+
+.tracking-search-card > div:first-child {
+  flex: 1;
+}
+
+.tracking-search-card span {
+  display: block;
+  margin-bottom: 6px;
+  color: #16834b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.tracking-search-card h2 {
+  margin: 0 0 7px;
+  color: #222;
+  font-size: 20px;
+}
+
+.tracking-search-card p {
+  margin: 0;
+  color: #777;
+  font-size: 13px;
+}
+
+.tracking-search-form {
+  display: flex;
+  gap: 8px;
+  width: 420px;
+}
+
+.tracking-search-form input {
+  flex: 1;
+  min-width: 0;
+  height: 43px;
+  padding: 0 13px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  background: white;
+  font-size: 13px;
+}
+
+.tracking-search-form input:focus {
+  border-color: #16834b;
+}
+
+.tracking-search-form button {
+  height: 43px;
+  padding: 0 17px;
+  border: none;
+  border-radius: 8px;
+  background: #16834b;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ========================================
+   VIDE
+======================================== */
+
+.tracking-empty {
+  padding: 70px 20px;
+  border: 1px solid #e7e7e7;
+  border-radius: 14px;
+  background: white;
+  text-align: center;
+}
+
+.tracking-empty > div {
+  margin-bottom: 15px;
+  font-size: 50px;
+}
+
+.tracking-empty h2 {
+  margin: 0 0 8px;
+  color: #222;
+  font-size: 21px;
+}
+
+.tracking-empty p {
+  max-width: 500px;
+  margin: 0 auto 22px;
+  color: #777;
+  font-size: 13px;
+}
+
+/* ========================================
+   COMMANDE
+======================================== */
+
+.tracking-order-card {
+  padding: 28px;
+  border: 1px solid #e5e5e5;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.tracking-order-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #eee;
+}
+
+.tracking-order-header span {
+  display: block;
+  margin-bottom: 5px;
+  color: #16834b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.tracking-order-header h2 {
+  margin: 0 0 4px;
+  color: #222;
+  font-size: 21px;
+}
+
+.tracking-order-header p {
+  margin: 0;
+  color: #888;
+  font-size: 12px;
+}
+
+/* ========================================
+   STATUT
+======================================== */
+
+.tracking-status {
+  padding: 8px 13px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tracking-status.pending {
+  color: #b45309;
+  border-color: #f0c36a;
+  background: #fffaf0;
+}
+
+.tracking-status.confirmed {
+  color: #16834b;
+  border-color: #9bd5b5;
+  background: #f1faf5;
+}
+
+.tracking-status.delivery {
+  color: #2563eb;
+  border-color: #a9c5f5;
+  background: #f3f7ff;
+}
+
+.tracking-status.delivered {
+  color: #15803d;
+  border-color: #9bd5b5;
+  background: #f1faf5;
+}
+
+.tracking-status.cancelled {
+  color: #dc2626;
+  border-color: #f0aaaa;
+  background: #fff5f5;
+}
+
+/* ========================================
+   TIMELINE
+======================================== */
+
+.tracking-timeline {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 45px 10px;
+}
+
+.tracking-timeline::before {
+  content: "";
+  position: absolute;
+  top: 69px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #e5e9e6;
+}
+
+.tracking-step {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  text-align: center;
+}
+
+.tracking-step-marker {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 13px;
+  border: 2px solid #dfe5e1;
+  border-radius: 50%;
+  background: white;
+  color: #999;
+  font-size: 18px;
+}
+
+.tracking-step.completed .tracking-step-marker,
+.tracking-step.active .tracking-step-marker {
+  border-color: #16834b;
+  background: #16834b;
+  color: white;
+}
+
+.tracking-step-content span {
+  display: block;
+  margin-bottom: 5px;
+  color: #999;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.tracking-step.active .tracking-step-content span {
+  color: #16834b;
+}
+
+.tracking-step-content h3 {
+  margin: 0 0 5px;
+  color: #333;
+  font-size: 13px;
+}
+
+.tracking-step-content p {
+  max-width: 180px;
+  margin: 0 auto;
+  color: #888;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* ========================================
+   INFORMATIONS
+======================================== */
+
+.tracking-order-info {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 20px 0;
+  border-top: 1px solid #eee;
+}
+
+.tracking-order-info > div {
+  padding: 15px;
+  border-radius: 9px;
+  background: #f7f8f7;
+}
+
+.tracking-order-info span {
+  display: block;
+  margin-bottom: 6px;
+  color: #888;
+  font-size: 10px;
+}
+
+.tracking-order-info strong {
+  display: block;
+  color: #333;
+  font-size: 12px;
+}
+
+/* ========================================
+   ANNULÉE
+======================================== */
+
+.tracking-cancelled {
+  margin: 30px 0;
+  padding: 35px 20px;
+  border: 1px solid #f0aaaa;
+  border-radius: 12px;
+  background: #fff7f7;
+  text-align: center;
+}
+
+.tracking-cancelled-icon {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: white;
+  font-size: 25px;
+}
+
+.tracking-cancelled > span {
+  display: block;
+  color: #dc2626;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.tracking-cancelled h2 {
+  margin: 7px 0;
+  color: #333;
+  font-size: 20px;
+}
+
+.tracking-cancelled p {
+  margin: 0;
+  color: #777;
+  font-size: 13px;
+}
+
+/* ========================================
+   ACTIONS
+======================================== */
+
+.tracking-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.tracking-primary-button,
+.tracking-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.tracking-primary-button {
+  background: #16834b;
+  color: white;
+}
+
+.tracking-primary-button:hover {
+  background: #0f6b3c;
+  transform: translateY(-1px);
+}
+
+.tracking-secondary-button {
+  border: 1px solid #dce5df;
+  background: white;
+  color: #16834b;
+}
+
+.tracking-secondary-button:hover {
+  border-color: #16834b;
+  background: #eef7f1;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 850px) {
+
+  .tracking-search-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tracking-search-form {
+    width: 100%;
+  }
+
+  .tracking-order-info {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+@media (max-width: 650px) {
+
+  .order-tracking-header {
+    padding: 35px 0;
+  }
+
+  .order-tracking-header h1 {
+    font-size: 30px;
+  }
+
+  .tracking-search-card,
+  .tracking-order-card {
+    padding: 20px;
+  }
+
+  .tracking-search-form {
+    flex-direction: column;
+  }
+
+  .tracking-search-form button {
+    width: 100%;
+  }
+
+  .tracking-timeline {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+    padding: 30px 0;
+  }
+
+  .tracking-timeline::before {
+    top: 30px;
+    bottom: 30px;
+    left: 23px;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+
+  .tracking-step {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 15px;
+    text-align: left;
+  }
+
+  .tracking-step-marker {
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .tracking-step-content p {
+    margin: 0;
+    max-width: none;
+  }
+
+  .tracking-order-info {
+    grid-template-columns: 1fr;
+  }
+
+  .tracking-actions {
+    flex-direction: column;
+  }
+
+  .tracking-primary-button,
+  .tracking-secondary-button {
+    width: 100%;
+  }
+
+}

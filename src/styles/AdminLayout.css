@@ -1,0 +1,17 @@
+/* ========================================
+   ADMIN LAYOUT
+======================================== */
+
+.admin-layout {
+  min-height: 100vh;
+
+  display: flex;
+
+  background: #f6f8f7;
+}
+
+.admin-layout-content {
+  flex: 1;
+
+  min-width: 0;
+}

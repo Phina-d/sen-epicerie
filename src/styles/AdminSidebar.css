@@ -1,0 +1,257 @@
+/* ========================================
+   SIDEBAR ADMIN
+======================================== */
+
+.admin-sidebar {
+  width: 250px;
+
+  min-height: 100vh;
+
+  position: sticky;
+  top: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #123c2a;
+
+  color: white;
+
+  flex-shrink: 0;
+}
+
+/* ========================================
+   LOGO
+======================================== */
+
+.admin-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 25px 20px;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-sidebar-logo-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.1);
+
+  font-size: 21px;
+}
+
+.admin-sidebar-logo strong {
+  display: block;
+
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+.admin-sidebar-logo span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: rgba(255, 255, 255, 0.6);
+
+  font-size: 11px;
+}
+
+/* ========================================
+   NAVIGATION
+======================================== */
+
+.admin-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+
+  padding: 25px 12px;
+
+  gap: 5px;
+}
+
+.admin-sidebar-label {
+  padding: 0 12px 10px;
+
+  color: rgba(255, 255, 255, 0.4);
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 1px;
+}
+
+.admin-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px 13px;
+
+  border-radius: 9px;
+
+  color: rgba(255, 255, 255, 0.75);
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.admin-sidebar-link span {
+  width: 22px;
+
+  text-align: center;
+
+  font-size: 17px;
+}
+
+.admin-sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+
+  color: white;
+}
+
+.admin-sidebar-link.active {
+  background: #16834b;
+
+  color: white;
+
+  font-weight: 600;
+}
+
+/* ========================================
+   BAS
+======================================== */
+
+.admin-sidebar-bottom {
+  margin-top: auto;
+
+  padding: 18px 12px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-sidebar-shop-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px 13px;
+
+  border-radius: 9px;
+
+  color: rgba(255, 255, 255, 0.75);
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  transition: 0.2s ease;
+}
+
+.admin-sidebar-shop-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+
+  color: white;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 800px) {
+
+  .admin-sidebar {
+    width: 210px;
+  }
+
+}
+
+@media (max-width: 650px) {
+
+  .admin-sidebar {
+    width: 70px;
+  }
+
+  .admin-sidebar-logo {
+    justify-content: center;
+
+    padding: 18px 10px;
+  }
+
+  .admin-sidebar-logo > div:last-child {
+    display: none;
+  }
+
+  .admin-sidebar-logo-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .admin-sidebar-label {
+    display: none;
+  }
+
+  .admin-sidebar-link {
+    justify-content: center;
+
+    padding: 13px;
+  }
+
+  .admin-sidebar-link span {
+    font-size: 19px;
+  }
+
+  .admin-sidebar-link {
+    font-size: 0;
+  }
+
+  .admin-sidebar-shop-link {
+    justify-content: center;
+
+    font-size: 0;
+  }
+
+}
+
+/* ========================================
+   NOTIFICATIONS SIDEBAR
+======================================== */
+
+.admin-sidebar-notification-text {
+  flex: 1;
+}
+
+.admin-sidebar-notification-badge {
+  min-width: 21px;
+  height: 21px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 6px;
+
+  border-radius: 50px;
+
+  background: #dc2626;
+  color: white;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  line-height: 1;
+}

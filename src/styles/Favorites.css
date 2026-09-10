@@ -1,0 +1,327 @@
+/* ========================================
+   PAGE FAVORIS — SENÉPICERIE
+======================================== */
+
+.favorites-page {
+  min-height: 100vh;
+  background: #f8f8f6;
+}
+
+/* ========================================
+   HEADER
+======================================== */
+
+.favorites-header {
+  padding: 45px 0 35px;
+
+  background: white;
+
+  border-bottom: 1px solid #e7e9e7;
+}
+
+.favorites-kicker {
+  display: block;
+
+  margin-bottom: 10px;
+
+  color: #16834b;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 1.5px;
+}
+
+.favorites-title-row {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 25px;
+}
+
+.favorites-title-row h1 {
+  margin: 0 0 8px;
+
+  color: #222;
+
+  font-size: 34px;
+  line-height: 1.15;
+}
+
+.favorites-title-row p {
+  margin: 0;
+
+  color: #777;
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ========================================
+   BOUTON VIDER
+======================================== */
+
+.favorites-clear {
+  min-height: 42px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 16px;
+
+  border: 1px solid #eadede;
+  border-radius: 8px;
+
+  background: white;
+  color: #b23a32;
+
+  font-family: inherit;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.favorites-clear:hover {
+  background: #fff5f4;
+  border-color: #d9534f;
+
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   CONTENU
+======================================== */
+
+.favorites-content {
+  padding: 35px 0 75px;
+}
+
+/* ========================================
+   RÉSUMÉ
+======================================== */
+
+.favorites-summary {
+  display: flex;
+  align-items: baseline;
+
+  gap: 7px;
+
+  margin-bottom: 20px;
+}
+
+.favorites-summary strong {
+  color: #222;
+
+  font-size: 21px;
+}
+
+.favorites-summary span {
+  color: #777;
+
+  font-size: 13px;
+}
+
+/* ========================================
+   GRILLE
+======================================== */
+
+.favorites-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+/* ========================================
+   VIDE
+======================================== */
+
+.favorites-empty {
+  max-width: 600px;
+
+  margin: 35px auto 0;
+  padding: 70px 25px;
+
+  border: 1px solid #e5e8e6;
+  border-radius: 16px;
+
+  background: white;
+
+  text-align: center;
+}
+
+.favorites-empty-icon {
+  width: 64px;
+  height: 64px;
+
+  display: grid;
+  place-items: center;
+
+  margin: 0 auto 18px;
+
+  border-radius: 50%;
+
+  background: #eef7f1;
+
+  color: #16834b;
+
+  font-size: 32px;
+}
+
+.favorites-empty h2 {
+  margin: 0 0 9px;
+
+  color: #222;
+
+  font-size: 22px;
+}
+
+.favorites-empty p {
+  max-width: 430px;
+
+  margin: 0 auto 23px;
+
+  color: #777;
+
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* ========================================
+   RETOUR BOUTIQUE
+======================================== */
+
+.favorites-shop-button {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-height: 43px;
+
+  padding: 0 20px;
+
+  border: 1px solid #16834b;
+  border-radius: 8px;
+
+  background: #16834b;
+  color: white;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  text-decoration: none;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.favorites-shop-button:hover {
+  background: #0f6b3c;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 6px 16px rgba(22, 131, 75, 0.15);
+}
+
+/* ========================================
+   TABLETTE
+======================================== */
+
+@media (max-width: 1100px) {
+
+  .favorites-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+}
+
+/* ========================================
+   TABLETTE PETITE
+======================================== */
+
+@media (max-width: 850px) {
+
+  .favorites-title-row {
+    align-items: flex-start;
+
+    flex-direction: column;
+  }
+
+  .favorites-clear {
+    width: 100%;
+  }
+
+  .favorites-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 14px;
+  }
+
+}
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 600px) {
+
+  .favorites-header {
+    padding: 35px 0 30px;
+  }
+
+  .favorites-title-row h1 {
+    font-size: 29px;
+  }
+
+  .favorites-title-row p {
+    font-size: 13px;
+  }
+
+  .favorites-content {
+    padding: 28px 0 55px;
+  }
+
+  .favorites-grid {
+    gap: 10px;
+  }
+
+  .favorites-empty {
+    margin-top: 20px;
+    padding: 55px 18px;
+  }
+
+  .favorites-empty h2 {
+    font-size: 19px;
+  }
+
+  .favorites-empty p {
+    font-size: 13px;
+  }
+
+}
+
+@media (max-width: 400px) {
+
+  .favorites-grid {
+    gap: 8px;
+  }
+
+}

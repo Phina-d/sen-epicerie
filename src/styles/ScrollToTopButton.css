@@ -1,0 +1,87 @@
+/* ========================================
+   BOUTON SCROLLER
+======================================== */
+
+.scroll-to-top {
+  position: fixed;
+  right: 25px;
+  bottom: 25px;
+
+  width: 46px;
+  height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid #dce5df;
+  border-radius: 50%;
+
+  background: #ffffff;
+  color: #16834b;
+
+  font-size: 22px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+
+  z-index: 9999;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* ========================================
+   HOVER
+======================================== */
+
+.scroll-to-top:hover {
+  background: #16834b;
+  border-color: #16834b;
+  color: #ffffff;
+
+  transform: translateY(-3px);
+
+  box-shadow: 0 9px 25px rgba(0, 0, 0, 0.16);
+}
+
+/* ========================================
+   ACTIVE
+======================================== */
+
+.scroll-to-top:active {
+  transform: translateY(0);
+}
+
+/* ========================================
+   FOCUS
+======================================== */
+
+.scroll-to-top:focus-visible {
+  outline: 3px solid rgba(22, 131, 75, 0.25);
+  outline-offset: 3px;
+}
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 600px) {
+  .scroll-to-top {
+    right: 16px;
+    bottom: 18px;
+
+    width: 42px;
+    height: 42px;
+
+    font-size: 20px;
+  }
+}

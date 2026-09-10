@@ -1,0 +1,573 @@
+/* ========================================
+   PAGE À PROPOS — SENÉPICERIE
+======================================== */
+
+.about-page {
+  min-height: 100vh;
+  background: #fff;
+}
+
+/* ========================================
+   HERO
+======================================== */
+
+.about-hero {
+  padding: 75px 0 85px;
+
+  background: #eef5ef;
+
+  border-bottom: 1px solid #e2ebe4;
+}
+
+.about-kicker,
+.about-section-kicker {
+  display: block;
+
+  color: #16834b;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 1.5px;
+}
+
+.about-hero-content {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    300px;
+
+  align-items: center;
+
+  gap: 60px;
+
+  margin-top: 18px;
+}
+
+.about-hero h1 {
+  max-width: 720px;
+
+  margin: 0;
+
+  color: #222;
+
+  font-size: 48px;
+  line-height: 1.1;
+  letter-spacing: -1.2px;
+}
+
+.about-hero p {
+  max-width: 620px;
+
+  margin: 22px 0 27px;
+
+  color: #5f6862;
+
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.about-primary-button,
+.about-cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 44px;
+
+  padding: 0 20px;
+
+  border-radius: 8px;
+
+  background: #16834b;
+  color: white;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.about-primary-button:hover,
+.about-cta-button:hover {
+  background: #0f6b3c;
+
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   CARTE HERO
+======================================== */
+
+.about-hero-card {
+  display: flex;
+  flex-direction: column;
+
+  padding: 28px;
+
+  border: 1px solid #dce8df;
+  border-radius: 15px;
+
+  background: rgba(255, 255, 255, 0.85);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.04);
+}
+
+.about-hero-icon {
+  width: 52px;
+  height: 52px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 18px;
+
+  border-radius: 12px;
+
+  background: #eef7f1;
+
+  font-size: 24px;
+}
+
+.about-hero-card strong {
+  margin-bottom: 8px;
+
+  color: #222;
+
+  font-size: 16px;
+}
+
+.about-hero-card span {
+  color: #777;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ========================================
+   SECTIONS
+======================================== */
+
+.about-section {
+  padding: 75px 0;
+}
+
+.about-two-columns {
+  display: grid;
+
+  grid-template-columns:
+    minmax(250px, 0.8fr)
+    minmax(0, 1.2fr);
+
+  gap: 70px;
+}
+
+.about-two-columns h2,
+.about-section-heading h2,
+.about-payment-card h2,
+.about-cta h2 {
+  margin: 8px 0 0;
+
+  color: #222;
+
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.about-text {
+  color: #666;
+
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.about-text p {
+  margin: 0 0 17px;
+}
+
+.about-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* ========================================
+   TITRES DE SECTION
+======================================== */
+
+.about-section-heading {
+  max-width: 650px;
+
+  margin-bottom: 30px;
+}
+
+.about-section-heading p {
+  margin: 12px 0 0;
+
+  color: #777;
+
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* ========================================
+   VALEURS
+======================================== */
+
+.about-values-section {
+  padding: 75px 0;
+
+  background: #f8f9f7;
+
+  border-top: 1px solid #edf0ed;
+  border-bottom: 1px solid #edf0ed;
+}
+
+.about-values-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 16px;
+}
+
+.about-value-card {
+  padding: 25px;
+
+  border: 1px solid #e5e8e5;
+  border-radius: 13px;
+
+  background: white;
+}
+
+.about-value-icon {
+  width: 46px;
+  height: 46px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 17px;
+
+  border-radius: 11px;
+
+  background: #eef7f1;
+
+  font-size: 21px;
+}
+
+.about-value-card h3 {
+  margin: 0 0 8px;
+
+  color: #222;
+
+  font-size: 16px;
+}
+
+.about-value-card p {
+  margin: 0;
+
+  color: #777;
+
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* ========================================
+   ÉTAPES
+======================================== */
+
+.about-steps {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 18px;
+}
+
+.about-step {
+  display: flex;
+
+  gap: 16px;
+
+  padding: 22px;
+
+  border: 1px solid #e5e8e6;
+  border-radius: 13px;
+
+  background: #fafcfb;
+}
+
+.about-step-number {
+  flex-shrink: 0;
+
+  color: #16834b;
+
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.about-step h3 {
+  margin: 0 0 7px;
+
+  color: #222;
+
+  font-size: 15px;
+}
+
+.about-step p {
+  margin: 0;
+
+  color: #777;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ========================================
+   PAIEMENT
+======================================== */
+
+.about-payment-section {
+  padding: 0 0 75px;
+}
+
+.about-payment-card {
+  display: grid;
+
+  grid-template-columns:
+    1fr
+    auto;
+
+  align-items: center;
+
+  gap: 40px;
+
+  padding: 32px;
+
+  border-radius: 15px;
+
+  background: #eef5ef;
+}
+
+.about-payment-card h2 {
+  font-size: 24px;
+}
+
+.about-payment-card p {
+  max-width: 560px;
+
+  margin: 12px 0 0;
+
+  color: #666;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.about-payment-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  min-width: 210px;
+}
+
+.about-payment-list span {
+  padding: 10px 13px;
+
+  border: 1px solid #dbe6de;
+  border-radius: 8px;
+
+  background: white;
+
+  color: #333;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ========================================
+   CTA
+======================================== */
+
+.about-cta {
+  padding: 70px 0;
+
+  background: #16834b;
+
+  text-align: center;
+}
+
+.about-cta-content {
+  max-width: 650px;
+
+  margin: 0 auto;
+}
+
+.about-cta-content > span {
+  color: #dcefe4;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 1.5px;
+}
+
+.about-cta h2 {
+  margin-top: 10px;
+
+  color: white;
+
+  font-size: 30px;
+}
+
+.about-cta p {
+  max-width: 530px;
+
+  margin: 13px auto 23px;
+
+  color: #e4f1e9;
+
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.about-cta-button {
+  background: white;
+  color: #16834b;
+}
+
+.about-cta-button:hover {
+  background: #f5f8f6;
+}
+
+/* ========================================
+   TABLETTE
+======================================== */
+
+@media (max-width: 1000px) {
+
+  .about-hero-content {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .about-hero-card {
+    max-width: 450px;
+  }
+
+  .about-values-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .about-two-columns {
+    gap: 40px;
+  }
+
+}
+
+/* ========================================
+   TABLETTE
+======================================== */
+
+@media (max-width: 800px) {
+
+  .about-hero {
+    padding: 60px 0 70px;
+  }
+
+  .about-hero h1 {
+    font-size: 40px;
+  }
+
+  .about-two-columns {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+
+  .about-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .about-payment-card {
+    grid-template-columns: 1fr;
+  }
+
+  .about-payment-list {
+    max-width: 350px;
+  }
+
+}
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 600px) {
+
+  .about-hero {
+    padding: 50px 0 60px;
+  }
+
+  .about-hero h1 {
+    font-size: 33px;
+    letter-spacing: -0.7px;
+  }
+
+  .about-hero p {
+    font-size: 14px;
+  }
+
+  .about-hero-card {
+    padding: 22px;
+  }
+
+  .about-section,
+  .about-values-section {
+    padding: 55px 0;
+  }
+
+  .about-two-columns h2,
+  .about-section-heading h2 {
+    font-size: 24px;
+  }
+
+  .about-values-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-value-card {
+    padding: 21px;
+  }
+
+  .about-payment-section {
+    padding-bottom: 55px;
+  }
+
+  .about-payment-card {
+    padding: 25px 20px;
+  }
+
+  .about-payment-card h2 {
+    font-size: 22px;
+  }
+
+  .about-cta {
+    padding: 55px 0;
+  }
+
+  .about-cta h2 {
+    font-size: 25px;
+  }
+
+}

@@ -1,0 +1,496 @@
+/* ========================================
+   SUPPORT — PAGE PRINCIPALE
+======================================== */
+
+.support-page {
+  min-height: 100vh;
+  background: #f8f8f6;
+  color: #222;
+}
+
+/* ========================================
+   HERO
+======================================== */
+
+.support-hero {
+  padding: 75px 0 70px;
+  background: #eef5ef;
+  border-bottom: 1px solid #e2ebe4;
+}
+
+.support-kicker {
+  display: inline-block;
+  margin-bottom: 14px;
+  color: #16834b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.support-hero h1 {
+  max-width: 760px;
+  margin: 0;
+  font-size: 48px;
+  line-height: 1.12;
+  letter-spacing: -1px;
+  color: #202020;
+}
+
+.support-hero p {
+  max-width: 650px;
+  margin: 20px 0 0;
+  color: #666;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ========================================
+   TITRES DE SECTIONS
+======================================== */
+
+.support-section-heading {
+  margin-bottom: 28px;
+}
+
+.support-section-heading > span {
+  display: block;
+  margin-bottom: 7px;
+  color: #16834b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.support-section-heading h2 {
+  margin: 0;
+  color: #222;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+/* ========================================
+   CARTES D'ASSISTANCE
+======================================== */
+
+.support-cards-section {
+  padding: 65px 0;
+  background: white;
+}
+
+.support-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.support-card {
+  min-width: 0;
+  padding: 25px;
+  border: 1px solid #e6e8e6;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.025);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.support-card:hover {
+  border-color: #cfe2d5;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+}
+
+.support-card-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border-radius: 11px;
+  background: #eef7f1;
+  font-size: 22px;
+}
+
+.support-card h3 {
+  margin: 0 0 9px;
+  color: #292929;
+  font-size: 17px;
+}
+
+.support-card p {
+  min-height: 48px;
+  margin: 0 0 18px;
+  color: #777;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.support-card-link {
+  display: inline-flex;
+  align-items: center;
+  color: #16834b;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.support-card-link:hover {
+  color: #0f6b3c;
+}
+
+/* ========================================
+   FAQ
+======================================== */
+
+.support-faq-section {
+  padding: 65px 0;
+  background: #f8f8f6;
+}
+
+.support-faq-list {
+  max-width: 900px;
+  border-top: 1px solid #e2e4e2;
+}
+
+.support-faq-item {
+  border-bottom: 1px solid #e2e4e2;
+  background: white;
+}
+
+.support-faq-question {
+  width: 100%;
+  min-height: 65px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px 20px;
+  border: none;
+  background: transparent;
+  color: #333;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.support-faq-question:hover {
+  color: #16834b;
+}
+
+.support-faq-icon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid #dfe5e1;
+  border-radius: 50%;
+  color: #16834b;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.support-faq-answer {
+  padding: 0 55px 20px 20px;
+}
+
+.support-faq-answer p {
+  max-width: 760px;
+  margin: 0;
+  color: #777;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.support-faq-item.is-open .support-faq-question {
+  color: #16834b;
+}
+
+/* ========================================
+   CONTACT
+======================================== */
+
+.support-contact-section {
+  padding: 65px 0;
+  background: white;
+}
+
+.support-contact-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 35px;
+  padding: 35px;
+  border: 1px solid #dfe8e1;
+  border-radius: 16px;
+  background: #eef5ef;
+}
+
+.support-contact-content {
+  min-width: 0;
+}
+
+.support-contact-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: #16834b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.support-contact-content h2 {
+  max-width: 600px;
+  margin: 0 0 10px;
+  color: #222;
+  font-size: 25px;
+  line-height: 1.25;
+}
+
+.support-contact-content p {
+  max-width: 600px;
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.support-contact-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.support-contact-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 43px;
+  padding: 0 17px;
+  border: 1px solid #d7dfda;
+  border-radius: 8px;
+  background: white;
+  color: #16834b;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: 0.2s ease;
+}
+
+.support-contact-button:hover {
+  border-color: #16834b;
+  background: #16834b;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.support-contact-button-primary {
+  border-color: #16834b;
+  background: #16834b;
+  color: white;
+}
+
+.support-contact-button-primary:hover {
+  border-color: #0f6b3c;
+  background: #0f6b3c;
+}
+
+/* ========================================
+   CTA FINAL
+======================================== */
+
+.support-bottom-cta {
+  padding: 0 0 70px;
+  background: white;
+}
+
+.support-bottom-cta-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 30px 35px;
+  border-radius: 14px;
+  background: #202a24;
+}
+
+.support-bottom-cta-inner > div {
+  min-width: 0;
+}
+
+.support-bottom-cta-inner span {
+  display: block;
+  margin-bottom: 7px;
+  color: #9bd5b5;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+.support-bottom-cta-inner h2 {
+  margin: 0 0 7px;
+  color: white;
+  font-size: 21px;
+}
+
+.support-bottom-cta-inner p {
+  margin: 0;
+  color: #c4ccc7;
+  font-size: 13px;
+}
+
+.support-bottom-cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 43px;
+  padding: 0 18px;
+  border-radius: 8px;
+  background: white;
+  color: #16834b;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: 0.2s ease;
+}
+
+.support-bottom-cta-button:hover {
+  background: #16834b;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   RESPONSIVE — TABLETTE
+======================================== */
+
+@media (max-width: 950px) {
+
+  .support-hero {
+    padding: 60px 0;
+  }
+
+  .support-hero h1 {
+    font-size: 40px;
+  }
+
+  .support-cards-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .support-contact-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .support-contact-actions {
+    width: 100%;
+  }
+
+  .support-contact-button {
+    flex: 1;
+  }
+
+  .support-bottom-cta-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* ========================================
+   RESPONSIVE — MOBILE
+======================================== */
+
+@media (max-width: 650px) {
+
+  .support-hero {
+    padding: 50px 0;
+  }
+
+  .support-hero h1 {
+    font-size: 32px;
+    letter-spacing: -0.5px;
+  }
+
+  .support-hero p {
+    font-size: 14px;
+  }
+
+  .support-cards-section,
+  .support-faq-section,
+  .support-contact-section {
+    padding: 50px 0;
+  }
+
+  .support-section-heading h2 {
+    font-size: 21px;
+  }
+
+  .support-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .support-card {
+    padding: 21px;
+  }
+
+  .support-card p {
+    min-height: auto;
+  }
+
+  .support-faq-question {
+    min-height: 60px;
+    padding: 15px;
+    font-size: 13px;
+  }
+
+  .support-faq-answer {
+    padding: 0 45px 18px 15px;
+  }
+
+  .support-faq-answer p {
+    font-size: 12px;
+  }
+
+  .support-contact-card {
+    padding: 25px 20px;
+  }
+
+  .support-contact-content h2 {
+    font-size: 21px;
+  }
+
+  .support-contact-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .support-contact-button {
+    width: 100%;
+  }
+
+  .support-bottom-cta {
+    padding-bottom: 50px;
+  }
+
+  .support-bottom-cta-inner {
+    padding: 25px 20px;
+  }
+
+  .support-bottom-cta-inner h2 {
+    font-size: 19px;
+  }
+
+  .support-bottom-cta-button {
+    width: 100%;
+  }
+}
