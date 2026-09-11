@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import {
-  getProducts,
+  loadProductsFromSupabase,
 } from "../utils/productsManager";
 
 import ProductCard from "../components/ProductCard";
@@ -12,21 +12,41 @@ function Home() {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    const loadProducts = () => {
-      setProducts(getProducts());
+    let isMounted = true;
+
+    const loadProducts = async () => {
+      try {
+        const productsFromSupabase =
+          await loadProductsFromSupabase();
+
+        if (isMounted) {
+          setProducts(productsFromSupabase);
+        }
+      } catch (error) {
+        console.error(
+          "Erreur lors du chargement des produits :",
+          error
+        );
+      }
     };
 
     loadProducts();
 
+    const handleProductsUpdated = () => {
+      loadProducts();
+    };
+
     window.addEventListener(
       "productsUpdated",
-      loadProducts
+      handleProductsUpdated
     );
 
     return () => {
+      isMounted = false;
+
       window.removeEventListener(
         "productsUpdated",
-        loadProducts
+        handleProductsUpdated
       );
     };
   }, []);
@@ -34,13 +54,15 @@ function Home() {
   const featuredProducts = products.filter(
     (product) =>
       product.active !== false &&
-      product.featured
+      product.featured === true
   );
 
   return (
     <main>
 
-      {/* HERO */}
+      {/* ========================================
+          HERO
+      ======================================== */}
 
       <section className="home-hero">
         <div className="container">
@@ -71,7 +93,9 @@ function Home() {
         </div>
       </section>
 
-      {/* PRODUITS */}
+      {/* ========================================
+          PRODUITS POPULAIRES
+      ======================================== */}
 
       <section className="home-section">
         <div className="container">

@@ -49,9 +49,11 @@ function formatDate(date) {
 // ========================================
 
 function getCustomerName(order) {
-  return `${order.customer?.firstName || ""} ${
-    order.customer?.lastName || ""
-  }`.trim() || "Client inconnu";
+  return (
+    `${order.customer?.firstName || ""} ${
+      order.customer?.lastName || ""
+    }`.trim() || "Client inconnu"
+  );
 }
 
 // ========================================
@@ -95,8 +97,7 @@ function getProductsText(order) {
 // ========================================
 
 function printOrder(order) {
-  const customerName =
-    getCustomerName(order);
+  const customerName = getCustomerName(order);
 
   const items = Array.isArray(order.items)
     ? order.items
@@ -484,9 +485,7 @@ function printOrders(orders) {
       const customerName =
         getCustomerName(order);
 
-      const items = Array.isArray(
-        order.items
-      )
+      const items = Array.isArray(order.items)
         ? order.items
         : [];
 
@@ -797,23 +796,23 @@ function exportOrdersToExcel(orders) {
       "Nombre de produits":
         getProductsCount(order),
 
-    Produits:
-  getProductsText(order),
+      Produits:
+        getProductsText(order),
 
-"Sous-total":
-  Number(order.subtotal || 0),
+      "Sous-total":
+        Number(order.subtotal || 0),
 
-Livraison:
-  Number(order.shipping || 0),
+      Livraison:
+        Number(order.shipping || 0),
 
-Total:
-  Number(order.total || 0),
+      Total:
+        Number(order.total || 0),
 
-Paiement:
-  order.payment || "Non précisé",
+      Paiement:
+        order.payment || "Non précisé",
 
-Statut:
-  order.status || "En attente",
+      Statut:
+        order.status || "En attente",
     })
   );
 
@@ -821,10 +820,6 @@ Statut:
     XLSX.utils.json_to_sheet(
       ordersData
     );
-
-  // ======================================
-  // LARGEUR DES COLONNES
-  // ======================================
 
   ordersSheet["!cols"] = [
     { wch: 18 },
@@ -942,6 +937,7 @@ Statut:
     {
       Indicateur:
         "Nombre de commandes",
+
       Valeur:
         totalOrders,
     },
@@ -949,6 +945,7 @@ Statut:
     {
       Indicateur:
         "Produits vendus",
+
       Valeur:
         totalProducts,
     },
@@ -956,6 +953,7 @@ Statut:
     {
       Indicateur:
         "Frais de livraison",
+
       Valeur:
         totalShipping,
     },
@@ -963,6 +961,7 @@ Statut:
     {
       Indicateur:
         "Chiffre d'affaires",
+
       Valeur:
         totalSales,
     },
@@ -1032,19 +1031,42 @@ function AdminOrders() {
   const [statusFilter, setStatusFilter] =
     useState("Toutes");
 
+  const [loading, setLoading] =
+    useState(true);
+
+  const [processingOrderId, setProcessingOrderId] =
+    useState(null);
+
   // ========================================
   // CHARGER LES COMMANDES
   // ========================================
 
-  const loadOrders = () => {
-    const currentOrders =
-      getOrders();
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
 
-    setOrders(
-      Array.isArray(currentOrders)
-        ? currentOrders
-        : []
-    );
+      const currentOrders =
+        await getOrders();
+
+      setOrders(
+        Array.isArray(currentOrders)
+          ? currentOrders
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors du chargement des commandes :",
+        error
+      );
+
+      setOrders([]);
+
+      window.alert(
+        "Impossible de charger les commandes depuis Supabase."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ========================================
@@ -1054,10 +1076,9 @@ function AdminOrders() {
   useEffect(() => {
     loadOrders();
 
-    const handleOrdersUpdated =
-      () => {
-        loadOrders();
-      };
+    const handleOrdersUpdated = () => {
+      loadOrders();
+    };
 
     window.addEventListener(
       "ordersUpdated",
@@ -1089,23 +1110,44 @@ function AdminOrders() {
   // CHANGER LE STATUT
   // ========================================
 
-  const handleStatusChange = (
+  const handleStatusChange = async (
     orderId,
     status
   ) => {
-    updateOrderStatus(
-      orderId,
-      status
-    );
+    try {
+      setProcessingOrderId(orderId);
 
-    loadOrders();
+      await updateOrderStatus(
+        orderId,
+        status
+      );
+
+      await loadOrders();
+
+      console.log(
+        "✅ Statut de la commande mis à jour :",
+        orderId,
+        status
+      );
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors de la modification du statut :",
+        error
+      );
+
+      window.alert(
+        "Impossible de modifier le statut de la commande."
+      );
+    } finally {
+      setProcessingOrderId(null);
+    }
   };
 
   // ========================================
   // SUPPRIMER UNE COMMANDE
   // ========================================
 
-  const handleDelete = (
+  const handleDelete = async (
     order
   ) => {
     const customerName =
@@ -1124,25 +1166,41 @@ function AdminOrders() {
       return;
     }
 
-    const result =
-      deleteOrder(
-        order.id
-      );
+    try {
+      setProcessingOrderId(order.id);
 
-    if (!result.success) {
+      const result =
+        await deleteOrder(
+          order.id
+        );
+
+      if (!result?.success) {
+        window.alert(
+          result?.message ||
+            "Impossible de supprimer la commande."
+        );
+
+        return;
+      }
+
+      await loadOrders();
+
       window.alert(
         result.message ||
-          "Impossible de supprimer la commande."
+          "Commande supprimée avec succès."
+      );
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors de la suppression de la commande :",
+        error
       );
 
-      return;
+      window.alert(
+        "Impossible de supprimer la commande. Veuillez réessayer."
+      );
+    } finally {
+      setProcessingOrderId(null);
     }
-
-    loadOrders();
-
-    window.alert(
-      result.message
-    );
   };
 
   // ========================================
@@ -1267,7 +1325,8 @@ function AdminOrders() {
                   )
                 }
                 disabled={
-                  filteredOrders.length === 0
+                  filteredOrders.length === 0 ||
+                  loading
                 }
                 className="admin-order-print-all"
                 title="Imprimer les commandes"
@@ -1283,7 +1342,8 @@ function AdminOrders() {
                   )
                 }
                 disabled={
-                  filteredOrders.length === 0
+                  filteredOrders.length === 0 ||
+                  loading
                 }
                 className="admin-order-excel"
                 title="Exporter en Excel"
@@ -1298,6 +1358,7 @@ function AdminOrders() {
                     event.target.value
                   )
                 }
+                disabled={loading}
               >
 
                 <option value="Toutes">
@@ -1331,10 +1392,33 @@ function AdminOrders() {
           </div>
 
           {/* =====================================
-              COMMANDES
+              CHARGEMENT
           ===================================== */}
 
-          {filteredOrders.length > 0 ? (
+          {loading ? (
+
+            <div className="admin-orders-empty">
+
+              <div>
+                ⏳
+              </div>
+
+              <h2>
+                Chargement des commandes...
+              </h2>
+
+              <p>
+                Récupération des commandes depuis
+                Supabase.
+              </p>
+
+            </div>
+
+          ) : filteredOrders.length > 0 ? (
+
+            /* =====================================
+               COMMANDES
+            ===================================== */
 
             <div className="admin-orders-table-wrapper">
 
@@ -1485,6 +1569,10 @@ function AdminOrders() {
                               order.status ||
                               "En attente"
                             }
+                            disabled={
+                              processingOrderId ===
+                              order.id
+                            }
                             onChange={(
                               event
                             ) =>
@@ -1496,23 +1584,23 @@ function AdminOrders() {
                             }
                           >
 
-                            <option>
+                            <option value="En attente">
                               En attente
                             </option>
 
-                            <option>
+                            <option value="Confirmée">
                               Confirmée
                             </option>
 
-                            <option>
+                            <option value="En livraison">
                               En livraison
                             </option>
 
-                            <option>
+                            <option value="Livrée">
                               Livrée
                             </option>
 
-                            <option>
+                            <option value="Annulée">
                               Annulée
                             </option>
 
@@ -1547,6 +1635,10 @@ function AdminOrders() {
                                 )
                               }
                               title="Imprimer la commande"
+                              disabled={
+                                processingOrderId ===
+                                order.id
+                              }
                             >
                               🖨️
                             </button>
@@ -1562,6 +1654,10 @@ function AdminOrders() {
                                 )
                               }
                               title="Supprimer la commande"
+                              disabled={
+                                processingOrderId ===
+                                order.id
+                              }
                             >
                               🗑️
                             </button>
@@ -1582,6 +1678,10 @@ function AdminOrders() {
             </div>
 
           ) : (
+
+            /* =====================================
+               AUCUNE COMMANDE
+            ===================================== */
 
             <div className="admin-orders-empty">
 

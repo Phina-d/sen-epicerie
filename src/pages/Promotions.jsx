@@ -1,36 +1,61 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { getProducts } from "../utils/productsManager";
+import {
+  loadProductsFromSupabase,
+} from "../utils/productsManager";
 
 import ProductCard from "../components/ProductCard";
 
 import "../styles/Promotions.css";
 
 function Promotions() {
-  const [products, setProducts] =
-    useState([]);
+  const [products, setProducts] = useState([]);
 
   // ========================================
-  // CHARGER LES PRODUITS
+  // CHARGER LES PRODUITS DEPUIS SUPABASE
   // ========================================
 
   useEffect(() => {
-    const loadProducts = () => {
-      setProducts(getProducts());
+    let isMounted = true;
+
+    const loadProducts = async () => {
+      try {
+        const productsFromSupabase =
+          await loadProductsFromSupabase();
+
+        if (isMounted) {
+          setProducts(productsFromSupabase);
+        }
+      } catch (error) {
+        console.error(
+          "Erreur lors du chargement des produits :",
+          error
+        );
+      }
     };
 
     loadProducts();
 
+    // ======================================
+    // MISE À JOUR APRÈS MODIFICATION
+    // ======================================
+
+    const handleProductsUpdated = () => {
+      loadProducts();
+    };
+
     window.addEventListener(
       "productsUpdated",
-      loadProducts
+      handleProductsUpdated
     );
 
     return () => {
+      isMounted = false;
+
       window.removeEventListener(
         "productsUpdated",
-        loadProducts
+        handleProductsUpdated
       );
     };
   }, []);
@@ -106,12 +131,10 @@ function Promotions() {
 
             </div>
 
-            {promotionProducts.length >
-              0 && (
+            {promotionProducts.length > 0 && (
               <strong>
                 {promotionProducts.length} offre
-                {promotionProducts.length >
-                1
+                {promotionProducts.length > 1
                   ? "s"
                   : ""}
               </strong>
@@ -119,8 +142,8 @@ function Promotions() {
 
           </div>
 
-          {promotionProducts.length >
-          0 ? (
+          {promotionProducts.length > 0 ? (
+
             <div className="promotions-grid">
 
               {promotionProducts.map(
@@ -133,7 +156,9 @@ function Promotions() {
               )}
 
             </div>
+
           ) : (
+
             <div className="promotions-empty">
 
               <div className="promotions-empty-icon">
@@ -157,6 +182,7 @@ function Promotions() {
               </Link>
 
             </div>
+
           )}
 
         </div>

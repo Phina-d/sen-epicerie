@@ -3,6 +3,7 @@
 // ========================================
 
 import { addNotification } from "./notificationsManager";
+import { supabase } from "./supabaseClient";
 
 const STORAGE_KEY = "senepicerie_products";
 
@@ -99,16 +100,6 @@ const defaultProducts = [
 // ========================================
 // NORMALISER UN PRODUIT
 // ========================================
-//
-// Cette fonction permet de gérer :
-//
-// 1. Les anciens produits
-// 2. Les nouveaux produits
-// 3. Les anciennes promotions
-// 4. Les nouvelles promotions
-//
-// IMPORTANT : elle ne supprime aucun produit.
-// ========================================
 
 function normalizeProduct(product) {
   if (!product || typeof product !== "object") {
@@ -122,9 +113,7 @@ function normalizeProduct(product) {
   }
 
   let oldPrice = null;
-
   let promo = false;
-
   let promoPercent = 0;
 
   // ======================================
@@ -135,8 +124,7 @@ function normalizeProduct(product) {
   const hasOldPromotion =
     product.onSale === true &&
     Number(product.salePrice) > 0 &&
-    Number(product.salePrice) <
-      Number(product.price);
+    Number(product.salePrice) < Number(product.price);
 
   if (hasOldPromotion) {
     oldPrice = price;
@@ -156,8 +144,7 @@ function normalizeProduct(product) {
   // ======================================
 
   else {
-    const possibleOldPrice =
-      Number(product.oldPrice);
+    const possibleOldPrice = Number(product.oldPrice);
 
     const validOldPrice =
       Number.isFinite(possibleOldPrice) &&
@@ -184,8 +171,7 @@ function normalizeProduct(product) {
   // STOCK
   // ======================================
 
-  const stockNumber =
-    Number(product.stock);
+  const stockNumber = Number(product.stock);
 
   const stock =
     Number.isFinite(stockNumber) &&
@@ -240,12 +226,8 @@ function normalizeProduct(product) {
       product.featured === true,
 
     // ====================================
-    // ANCIENNES PROPRIÉTÉS CONSERVÉES
+    // ANCIENNES PROPRIÉTÉS
     // ====================================
-    //
-    // On les garde temporairement pour éviter
-    // de casser d'éventuels anciens composants.
-    //
 
     onSale: promo,
 
@@ -260,7 +242,117 @@ function normalizeProduct(product) {
 }
 
 // ========================================
-// RÉCUPÉRER LES PRODUITS
+// CONVERTIR SUPABASE → PRODUIT REACT
+// ========================================
+
+function fromSupabaseProduct(row) {
+  if (!row || typeof row !== "object") {
+    return null;
+  }
+
+  return normalizeProduct({
+    id: row.id,
+
+    name: row.name,
+
+    category: row.category,
+
+    description: row.description,
+
+    price: row.price,
+
+    oldPrice: row.old_price,
+
+    promo: row.promo,
+
+    promoPercent: row.promo_percent,
+
+    stock: row.stock,
+
+    unit: row.unit,
+
+    image: row.image,
+
+    active: row.active,
+
+    featured: row.featured,
+
+    createdAt: row.created_at,
+
+    updatedAt: row.updated_at,
+  });
+}
+
+// ========================================
+// CONVERTIR PRODUIT REACT → SUPABASE
+// ========================================
+
+function toSupabaseProduct(product) {
+  const normalizedProduct =
+    normalizeProduct(product);
+
+  if (!normalizedProduct) {
+    return null;
+  }
+
+  return {
+    id: normalizedProduct.id,
+
+    name: normalizedProduct.name,
+
+    category: normalizedProduct.category,
+
+    description: normalizedProduct.description,
+
+    price: normalizedProduct.price,
+
+    old_price: normalizedProduct.oldPrice,
+
+    promo: normalizedProduct.promo,
+
+    promo_percent: normalizedProduct.promoPercent,
+
+    stock: normalizedProduct.stock,
+
+    unit: normalizedProduct.unit,
+
+    image: normalizedProduct.image,
+
+    active: normalizedProduct.active,
+
+    featured: normalizedProduct.featured,
+
+    updated_at: new Date().toISOString(),
+  };
+}
+
+// ========================================
+// SAUVEGARDER LE CACHE LOCAL
+// ========================================
+
+function saveLocalCache(products) {
+  const safeProducts =
+    Array.isArray(products)
+      ? products
+          .map(normalizeProduct)
+          .filter(Boolean)
+      : [];
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(safeProducts)
+  );
+
+  return safeProducts;
+}
+
+// ========================================
+// RÉCUPÉRER LES PRODUITS DU CACHE LOCAL
+// ========================================
+//
+// Cette fonction reste SYNCHRONE volontairement.
+// Cela permet de ne pas casser les pages existantes.
+//
 // ========================================
 
 export function getProducts() {
@@ -273,17 +365,18 @@ export function getProducts() {
 
   if (!storedProducts) {
     const initialProducts =
-      defaultProducts.map(
-        normalizeProduct
-      );
+      defaultProducts
+        .map(normalizeProduct)
+        .filter(Boolean);
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(initialProducts)
-    );
+    saveLocalCache(initialProducts);
 
     return initialProducts;
   }
+
+  // ======================================
+  // LECTURE DU CACHE
+  // ======================================
 
   try {
     const parsedProducts =
@@ -293,27 +386,12 @@ export function getProducts() {
       return [];
     }
 
-    // ====================================
-    // NORMALISATION
-    // ====================================
-
     const normalizedProducts =
       parsedProducts
         .map(normalizeProduct)
         .filter(Boolean);
 
-    // ====================================
-    // MIGRATION AUTOMATIQUE
-    // ====================================
-    //
-    // Les anciennes promotions sont converties
-    // dans le nouveau système.
-    //
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(normalizedProducts)
-    );
+    saveLocalCache(normalizedProducts);
 
     return normalizedProducts;
   } catch (error) {
@@ -327,10 +405,81 @@ export function getProducts() {
 }
 
 // ========================================
-// ENREGISTRER LES PRODUITS
+// CHARGER LES PRODUITS DEPUIS SUPABASE
+// ========================================
+//
+// Cette fonction est ASYNCHRONE.
+//
+// Elle sera utilisée progressivement par
+// Home, Shop, ProductDetails et Admin.
+//
 // ========================================
 
-export function saveProducts(products) {
+export async function loadProductsFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      });
+
+    if (error) {
+      console.error(
+        "❌ Erreur Supabase lors du chargement des produits :",
+        error
+      );
+
+      return getProducts();
+    }
+
+    const products =
+      Array.isArray(data)
+        ? data
+            .map(fromSupabaseProduct)
+            .filter(Boolean)
+        : [];
+
+    // ====================================
+    // METTRE À JOUR LE CACHE LOCAL
+    // ====================================
+
+    saveLocalCache(products);
+
+    // ====================================
+    // INFORMER LES COMPOSANTS
+    // ====================================
+
+    window.dispatchEvent(
+      new Event("productsUpdated")
+    );
+
+    console.log(
+      "✅ Produits chargés depuis Supabase :",
+      products
+    );
+
+    return products;
+  } catch (error) {
+    console.error(
+      "❌ Erreur inattendue Supabase :",
+      error
+    );
+
+    return getProducts();
+  }
+}
+
+// ========================================
+// ENREGISTRER LES PRODUITS LOCAL + SUPABASE
+// ========================================
+//
+// Cette fonction sera utilisée pour les
+// opérations nécessitant plusieurs produits.
+//
+// ========================================
+
+export async function saveProducts(products) {
   const safeProducts =
     Array.isArray(products)
       ? products
@@ -338,10 +487,46 @@ export function saveProducts(products) {
           .filter(Boolean)
       : [];
 
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(safeProducts)
-  );
+  // ======================================
+  // CACHE LOCAL
+  // ======================================
+
+  saveLocalCache(safeProducts);
+
+  // ======================================
+  // SYNCHRONISATION SUPABASE
+  // ======================================
+
+  try {
+    if (safeProducts.length > 0) {
+      const rows =
+        safeProducts
+          .map(toSupabaseProduct)
+          .filter(Boolean);
+
+      const { error } = await supabase
+        .from("products")
+        .upsert(rows, {
+          onConflict: "id",
+        });
+
+      if (error) {
+        console.error(
+          "❌ Erreur Supabase lors de l'enregistrement :",
+          error
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      "❌ Erreur inattendue lors de la synchronisation :",
+      error
+    );
+  }
+
+  // ======================================
+  // INFORMER L'APPLICATION
+  // ======================================
 
   window.dispatchEvent(
     new Event("productsUpdated")
@@ -354,9 +539,7 @@ export function saveProducts(products) {
 // AJOUTER UN PRODUIT
 // ========================================
 
-export function addProduct(product) {
-  const products = getProducts();
-
+export async function addProduct(product) {
   const newProduct =
     normalizeProduct(product);
 
@@ -366,9 +549,71 @@ export function addProduct(product) {
     );
   }
 
+  // ======================================
+  // SAUVEGARDE LOCALE IMMÉDIATE
+  // ======================================
+
+  const products = getProducts();
+
   products.push(newProduct);
 
-  saveProducts(products);
+  saveLocalCache(products);
+
+  window.dispatchEvent(
+    new Event("productsUpdated")
+  );
+
+  // ======================================
+  // SUPABASE
+  // ======================================
+
+  const supabaseProduct =
+    toSupabaseProduct(newProduct);
+
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .insert(supabaseProduct)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(
+        "❌ Erreur Supabase lors de l'ajout :",
+        error
+      );
+
+      throw error;
+    }
+
+    const savedProduct =
+      fromSupabaseProduct(data);
+
+    if (savedProduct) {
+      const updatedProducts =
+        getProducts().map((item) =>
+          String(item.id) ===
+          String(savedProduct.id)
+            ? savedProduct
+            : item
+        );
+
+      saveLocalCache(updatedProducts);
+
+      window.dispatchEvent(
+        new Event("productsUpdated")
+      );
+
+      return savedProduct;
+    }
+  } catch (error) {
+    console.error(
+      "❌ Le produit a été conservé localement mais n'a pas pu être envoyé à Supabase.",
+      error
+    );
+
+    throw error;
+  }
 
   return newProduct;
 }
@@ -377,53 +622,166 @@ export function addProduct(product) {
 // MODIFIER UN PRODUIT
 // ========================================
 
-export function updateProduct(
+export async function updateProduct(
   id,
   updates
 ) {
   const products = getProducts();
 
-  const updatedProducts =
-    products.map((product) => {
-      if (
-        String(product.id) !==
+  const existingProduct =
+    products.find(
+      (product) =>
+        String(product.id) ===
         String(id)
-      ) {
-        return product;
-      }
+    );
 
-      return normalizeProduct({
-        ...product,
-        ...updates,
-      });
+  if (!existingProduct) {
+    return null;
+  }
+
+  const updatedProduct =
+    normalizeProduct({
+      ...existingProduct,
+      ...updates,
     });
 
-  saveProducts(updatedProducts);
+  // ======================================
+  // CACHE LOCAL
+  // ======================================
 
-  return updatedProducts.find(
-    (product) =>
+  const updatedProducts =
+    products.map((product) =>
       String(product.id) ===
       String(id)
+        ? updatedProduct
+        : product
+    );
+
+  saveLocalCache(updatedProducts);
+
+  window.dispatchEvent(
+    new Event("productsUpdated")
   );
+
+  // ======================================
+  // SUPABASE
+  // ======================================
+
+  const supabaseProduct =
+    toSupabaseProduct(updatedProduct);
+
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .update(supabaseProduct)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(
+        "❌ Erreur Supabase lors de la modification :",
+        error
+      );
+
+      throw error;
+    }
+
+    const savedProduct =
+      fromSupabaseProduct(data);
+
+    if (savedProduct) {
+      const finalProducts =
+        getProducts().map((product) =>
+          String(product.id) ===
+          String(id)
+            ? savedProduct
+            : product
+        );
+
+      saveLocalCache(finalProducts);
+
+      window.dispatchEvent(
+        new Event("productsUpdated")
+      );
+
+      return savedProduct;
+    }
+  } catch (error) {
+    console.error(
+      "❌ Le produit a été modifié localement mais n'a pas pu être synchronisé avec Supabase.",
+      error
+    );
+
+    throw error;
+  }
+
+  return updatedProduct;
 }
 
 // ========================================
 // SUPPRIMER UN PRODUIT
 // ========================================
 
-export function deleteProduct(id) {
+export async function deleteProduct(id) {
   const products = getProducts();
 
-  const filteredProducts =
-    products.filter(
+  const productExists =
+    products.some(
       (product) =>
-        String(product.id) !==
+        String(product.id) ===
         String(id)
     );
 
-  saveProducts(filteredProducts);
+  if (!productExists) {
+    return products;
+  }
 
-  return filteredProducts;
+  // ======================================
+  // SUPABASE
+  // ======================================
+
+  try {
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error(
+        "❌ Erreur Supabase lors de la suppression :",
+        error
+      );
+
+      throw error;
+    }
+
+    // ====================================
+    // CACHE LOCAL
+    // ====================================
+
+    const filteredProducts =
+      products.filter(
+        (product) =>
+          String(product.id) !==
+          String(id)
+      );
+
+    saveLocalCache(filteredProducts);
+
+    window.dispatchEvent(
+      new Event("productsUpdated")
+    );
+
+    return filteredProducts;
+  } catch (error) {
+    console.error(
+      "❌ Le produit n'a pas été supprimé.",
+      error
+    );
+
+    throw error;
+  }
 }
 
 // ========================================
@@ -444,7 +802,7 @@ export function getProductById(id) {
 // MODIFIER LE STOCK
 // ========================================
 
-export function updateStock(
+export async function updateStock(
   id,
   quantity
 ) {
@@ -481,9 +839,70 @@ export function updateStock(
     return null;
   }
 
+  // ======================================
+  // MISE À JOUR LOCALE
+  // ======================================
+
   product.stock = newStock;
 
-  saveProducts(products);
+  saveLocalCache(products);
+
+  window.dispatchEvent(
+    new Event("productsUpdated")
+  );
+
+  // ======================================
+  // SUPABASE
+  // ======================================
+
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .update({
+        stock: newStock,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(
+        "❌ Erreur Supabase lors de la mise à jour du stock :",
+        error
+      );
+
+      throw error;
+    }
+
+    const updatedProduct =
+      fromSupabaseProduct(data);
+
+    if (updatedProduct) {
+      const updatedProducts =
+        getProducts().map((item) =>
+          String(item.id) ===
+          String(id)
+            ? updatedProduct
+            : item
+        );
+
+      saveLocalCache(updatedProducts);
+
+      window.dispatchEvent(
+        new Event("productsUpdated")
+      );
+
+      return updatedProduct;
+    }
+  } catch (error) {
+    console.error(
+      "❌ Le stock local a été modifié mais Supabase n'a pas été synchronisé.",
+      error
+    );
+
+    throw error;
+  }
 
   return product;
 }
@@ -492,7 +911,7 @@ export function updateStock(
 // DIMINUER LE STOCK APRÈS UNE VENTE
 // ========================================
 
-export function decreaseStock(
+export async function decreaseStock(
   id,
   quantity
 ) {
@@ -545,57 +964,126 @@ export function decreaseStock(
   const previousStock =
     currentStock;
 
-  product.stock =
+  const newStock =
     previousStock -
     requestedQuantity;
 
-  saveProducts(products);
-
   // ======================================
-  // RUPTURE DE STOCK
+  // SUPABASE
   // ======================================
 
-  if (product.stock === 0) {
-    addNotification({
-      type: "error",
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .update({
+        stock: newStock,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
 
-      title:
-        "Rupture de stock",
+    if (error) {
+      console.error(
+        "❌ Erreur Supabase lors de la diminution du stock :",
+        error
+      );
 
+      return {
+        success: false,
+        message:
+          "Impossible de mettre à jour le stock.",
+        error,
+      };
+    }
+
+    const updatedProduct =
+      fromSupabaseProduct(data);
+
+    if (!updatedProduct) {
+      return {
+        success: false,
+        message:
+          "Produit invalide retourné par Supabase.",
+      };
+    }
+
+    // ====================================
+    // CACHE LOCAL
+    // ====================================
+
+    const updatedProducts =
+      products.map((item) =>
+        String(item.id) ===
+        String(id)
+          ? updatedProduct
+          : item
+      );
+
+    saveLocalCache(updatedProducts);
+
+    window.dispatchEvent(
+      new Event("productsUpdated")
+    );
+
+    // ====================================
+    // RUPTURE DE STOCK
+    // ====================================
+
+    if (updatedProduct.stock === 0) {
+      addNotification({
+        type: "error",
+
+        title:
+          "Rupture de stock",
+
+        message:
+          `Le produit "${updatedProduct.name}" est maintenant en rupture de stock.`,
+
+        productId:
+          updatedProduct.id,
+      });
+    }
+
+    // ====================================
+    // STOCK FAIBLE
+    // ====================================
+
+    else if (
+      previousStock > 10 &&
+      updatedProduct.stock <= 10
+    ) {
+      addNotification({
+        type: "warning",
+
+        title:
+          "Stock faible",
+
+        message:
+          `Le produit "${updatedProduct.name}" ne dispose plus que de ${updatedProduct.stock} ${updatedProduct.unit}.`,
+
+        productId:
+          updatedProduct.id,
+      });
+    }
+
+    return {
+      success: true,
+      product: updatedProduct,
+    };
+  } catch (error) {
+    console.error(
+      "❌ Erreur inattendue lors de la diminution du stock :",
+      error
+    );
+
+    return {
+      success: false,
       message:
-        `Le produit "${product.name}" est maintenant en rupture de stock.`,
-
-      productId:
-        product.id,
-    });
+        "Une erreur est survenue lors de la mise à jour du stock.",
+      error,
+    };
   }
-
-  // ======================================
-  // STOCK FAIBLE
-  // ======================================
-
-  else if (
-    previousStock > 10 &&
-    product.stock <= 10
-  ) {
-    addNotification({
-      type: "warning",
-
-      title:
-        "Stock faible",
-
-      message:
-        `Le produit "${product.name}" ne dispose plus que de ${product.stock} ${product.unit}.`,
-
-      productId:
-        product.id,
-    });
-  }
-
-  return {
-    success: true,
-    product,
-  };
 }
 
 // ========================================
@@ -617,7 +1105,9 @@ export function hasEnoughStock(
     Number(quantity);
 
   return (
-    Number.isFinite(requestedQuantity) &&
+    Number.isFinite(
+      requestedQuantity
+    ) &&
     requestedQuantity > 0 &&
     Number(product.stock) >=
       requestedQuantity
@@ -628,24 +1118,20 @@ export function hasEnoughStock(
 // RÉINITIALISER LES PRODUITS
 // ========================================
 //
-// ATTENTION : cette fonction supprime
-// volontairement les produits ajoutés.
-// Elle ne doit donc PAS être appelée
-// automatiquement.
+// IMPORTANT : cette fonction reste
+// volontairement locale.
+//
+// Elle ne supprime rien dans Supabase.
+//
 // ========================================
 
 export function resetProducts() {
   const resetList =
-    defaultProducts.map(
-      (product) => ({
-        ...product,
-      })
-    );
+    defaultProducts
+      .map(normalizeProduct)
+      .filter(Boolean);
 
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(resetList)
-  );
+  saveLocalCache(resetList);
 
   window.dispatchEvent(
     new Event("productsUpdated")

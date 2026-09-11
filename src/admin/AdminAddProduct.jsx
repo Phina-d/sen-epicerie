@@ -135,14 +135,18 @@ function AdminAddProduct() {
 
     setError("");
 
-    /* Nom */
+    /* ========================================
+       VALIDATION NOM
+    ======================================== */
 
     if (!form.name.trim()) {
       setError("Veuillez saisir le nom du produit.");
       return;
     }
 
-    /* Prix */
+    /* ========================================
+       VALIDATION PRIX
+    ======================================== */
 
     if (
       !form.price ||
@@ -152,7 +156,9 @@ function AdminAddProduct() {
       return;
     }
 
-    /* Stock */
+    /* ========================================
+       VALIDATION STOCK
+    ======================================== */
 
     if (
       form.stock === "" ||
@@ -162,7 +168,9 @@ function AdminAddProduct() {
       return;
     }
 
-    /* Image */
+    /* ========================================
+       VALIDATION IMAGE
+    ======================================== */
 
     if (!selectedFile) {
       setError(
@@ -211,46 +219,84 @@ function AdminAddProduct() {
          DONNÉES DU PRODUIT
       ======================================== */
 
-const productData = {
-  name: form.name.trim(),
+      const isPromo = Boolean(form.onSale);
 
-  category: form.category,
+      const normalPrice = Number(form.price);
 
-  description: form.description.trim(),
+      const promoPrice = Number(form.salePrice);
 
-  // Prix actuellement affiché
-  price: form.onSale
-    ? Number(form.salePrice)
-    : Number(form.price),
+      const productData = {
+        name: form.name.trim(),
 
-  // Ancien prix
-  oldPrice: form.onSale
-    ? Number(form.price)
-    : null,
+        category: form.category,
 
-  // Promotion
-  promo: Boolean(form.onSale),
+        description: form.description.trim(),
 
-  promoPercent: form.onSale
-    ? currentDiscount
-    : 0,
+        /* ======================================
+           PRIX CANONIQUE
+        ====================================== */
 
-  stock: Number(form.stock),
+        // Prix actuellement vendu
+        price: isPromo
+          ? promoPrice
+          : normalPrice,
 
-  unit: form.unit,
+        // Ancien prix affiché pendant la promotion
+        oldPrice: isPromo
+          ? normalPrice
+          : null,
 
-  image: cloudinaryUrl,
+        /* ======================================
+           PROMOTION
+        ====================================== */
 
-  active: true,
+        promo: isPromo,
 
-  featured: Boolean(form.featured),
-};
+        promoPercent: isPromo
+          ? currentDiscount
+          : 0,
+
+        /* ======================================
+           STOCK
+        ====================================== */
+
+        stock: Number(form.stock),
+
+        unit: form.unit,
+
+        /* ======================================
+           IMAGE CLOUDINARY
+        ====================================== */
+
+        image: cloudinaryUrl,
+
+        /* ======================================
+           VISIBILITÉ
+        ====================================== */
+
+        active: true,
+
+        /* ======================================
+           PRODUIT POPULAIRE
+        ====================================== */
+
+        featured: Boolean(form.featured),
+      };
+
+      console.log(
+        "📦 Produit à enregistrer :",
+        productData
+      );
 
       /* ========================================
-         ENREGISTREMENT
+         ENREGISTREMENT SUPABASE
       ======================================== */
 
-      addProduct(productData);
+      await addProduct(productData);
+
+      console.log(
+        "✅ Produit ajouté avec succès dans Supabase"
+      );
 
       /* ========================================
          REDIRECTION
@@ -258,11 +304,15 @@ const productData = {
 
       navigate("/admin/products");
 
-    } catch (uploadError) {
-      console.error(uploadError);
+    } catch (productError) {
+      console.error(
+        "❌ Erreur lors de l'ajout du produit :",
+        productError
+      );
 
       setError(
-        "Une erreur est survenue lors de l'envoi de l'image. Vérifiez votre configuration Cloudinary."
+        productError?.message ||
+          "Une erreur est survenue lors de l'ajout du produit. Vérifiez votre connexion à Supabase et votre configuration Cloudinary."
       );
 
     } finally {
@@ -723,7 +773,7 @@ const productData = {
                 >
 
                   {loading
-                    ? "☁️ Envoi de l'image..."
+                    ? "☁️ Enregistrement..."
                     : "✓ Enregistrer le produit"}
 
                 </button>

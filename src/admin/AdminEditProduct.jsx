@@ -44,42 +44,112 @@ function AdminEditProduct() {
   ======================================== */
 
   useEffect(() => {
-    const product = getProductById(id);
+    let isMounted = true;
 
-    if (!product) {
-      setNotFound(true);
-      return;
-    }
+    const loadProduct = async () => {
+      try {
+        const product = await getProductById(id);
 
-    setForm({
-      name: product.name || "",
-      category: product.category || "Épicerie",
-      description: product.description || "",
+        if (!isMounted) {
+          return;
+        }
 
-      price: product.price ?? "",
+        if (!product) {
+          setNotFound(true);
+          return;
+        }
 
-      salePrice:
-        product.salePrice ?? "",
+        /*
+         * ------------------------------------
+         * PRIX / PROMOTION
+         * ------------------------------------
+         *
+         * Dans Supabase :
+         *
+         * price    = prix actuel
+         * oldPrice = ancien prix
+         * promo    = promotion active
+         *
+         * Pour le formulaire :
+         *
+         * prix normal     = oldPrice si promo
+         * prix promotion  = price
+         */
 
-      stock: product.stock ?? "",
+        const isPromo =
+          product.promo === true &&
+          Number(product.oldPrice || 0) >
+            Number(product.price || 0);
 
-      unit: product.unit || "unité",
+        setForm({
+          name: product.name || "",
 
-      image: product.image || "",
+          category:
+            product.category || "Épicerie",
 
-      featured:
-        Boolean(product.featured),
+          description:
+            product.description || "",
 
-      onSale:
-        Boolean(product.onSale),
+          /*
+           * Le champ price du formulaire
+           * représente toujours le prix normal.
+           */
+          price: isPromo
+            ? product.oldPrice
+            : product.price ?? "",
 
-      discount:
-        Number(product.discount || 0),
-    });
+          /*
+           * Le prix promotionnel est
+           * le prix actuel enregistré dans
+           * Supabase.
+           */
+          salePrice: isPromo
+            ? product.price
+            : "",
 
-    setImagePreview(
-      product.image || ""
-    );
+          stock:
+            product.stock ?? "",
+
+          unit:
+            product.unit || "unité",
+
+          image:
+            product.image || "",
+
+          featured:
+            Boolean(product.featured),
+
+          onSale:
+            isPromo,
+
+          discount:
+            isPromo
+              ? Number(product.promoPercent || 0)
+              : 0,
+        });
+
+        setImagePreview(
+          product.image || ""
+        );
+      } catch (loadError) {
+        console.error(
+          "❌ Erreur lors du chargement du produit :",
+          loadError
+        );
+
+        if (isMounted) {
+          setError(
+            "Impossible de charger le produit."
+          );
+        }
+      }
+    };
+
+    loadProduct();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   /* ========================================
@@ -288,8 +358,17 @@ function AdminEditProduct() {
       }
 
       /* =====================================
-         DONNÉES
+         DONNÉES DU PRODUIT
       ===================================== */
+
+      const isPromo =
+        Boolean(form.onSale);
+
+      const normalPrice =
+        Number(form.price);
+
+      const promoPrice =
+        Number(form.salePrice);
 
       const updatedProduct = {
         name: form.name.trim(),
@@ -299,40 +378,72 @@ function AdminEditProduct() {
         description:
           form.description.trim(),
 
-        price: Number(form.price),
+        /* ==================================
+           PRIX CANONIQUE
+        ================================== */
+
+        price: isPromo
+          ? promoPrice
+          : normalPrice,
+
+        oldPrice: isPromo
+          ? normalPrice
+          : null,
+
+        /* ==================================
+           PROMOTION
+        ================================== */
+
+        promo: isPromo,
+
+        promoPercent: isPromo
+          ? currentDiscount
+          : 0,
+
+        /* ==================================
+           STOCK
+        ================================== */
 
         stock: Number(form.stock),
 
         unit: form.unit,
 
+        /* ==================================
+           IMAGE
+        ================================== */
+
         image: imageUrl,
 
-        /* PRODUIT POPULAIRE */
+        /* ==================================
+           PRODUIT ACTIF
+        ================================== */
+
+        active: true,
+
+        /* ==================================
+           PRODUIT POPULAIRE
+        ================================== */
 
         featured:
           Boolean(form.featured),
-
-        /* PROMOTION */
-
-        onSale:
-          Boolean(form.onSale),
-
-        salePrice: form.onSale
-          ? Number(form.salePrice)
-          : null,
-
-        discount: form.onSale
-          ? currentDiscount
-          : 0,
       };
 
+      console.log(
+        "📦 Produit à modifier :",
+        updatedProduct
+      );
+
       /* =====================================
-         MISE À JOUR
+         MISE À JOUR SUPABASE
       ===================================== */
 
-      updateProduct(
+      await updateProduct(
         id,
         updatedProduct
+      );
+
+      console.log(
+        "✅ Produit modifié avec succès dans Supabase"
       );
 
       /* =====================================
@@ -345,11 +456,13 @@ function AdminEditProduct() {
 
     } catch (updateError) {
       console.error(
+        "❌ Erreur lors de la modification du produit :",
         updateError
       );
 
       setError(
-        "Une erreur est survenue lors de la modification du produit."
+        updateError?.message ||
+          "Une erreur est survenue lors de la modification du produit."
       );
     } finally {
       setLoading(false);

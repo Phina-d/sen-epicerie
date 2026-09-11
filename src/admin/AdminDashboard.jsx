@@ -367,8 +367,6 @@ function printDashboard({
 
           </div>
 
-          <!-- STATISTIQUES -->
-
           <section class="section">
 
             <h2 class="section-title">
@@ -422,8 +420,6 @@ function printDashboard({
             </div>
 
           </section>
-
-          <!-- STOCK + BEST PRODUCTS -->
 
           <section class="section">
 
@@ -515,8 +511,6 @@ function printDashboard({
 
           </section>
 
-          <!-- VENTES -->
-
           <section class="section">
 
             <div class="box">
@@ -607,10 +601,6 @@ function exportDashboardToExcel({
   todaySalesCount,
   todayProductsSold,
 }) {
-  /* ======================================
-     FEUILLE RÉSUMÉ
-  ====================================== */
-
   const summaryData = [
     {
       Indicateur:
@@ -676,10 +666,6 @@ function exportDashboardToExcel({
     },
   ];
 
-  /* ======================================
-     FEUILLE VENTES
-  ====================================== */
-
   const salesData = sales.map(
     (sale) => ({
       "N° Vente":
@@ -727,10 +713,6 @@ function exportDashboardToExcel({
     { wch: 20 },
   ];
 
-  /* ======================================
-     FEUILLE PRODUITS LES PLUS VENDUS
-  ====================================== */
-
   const bestProductsData =
     bestSellingProducts.map(
       (product, index) => ({
@@ -767,10 +749,6 @@ function exportDashboardToExcel({
     { wch: 20 },
     { wch: 25 },
   ];
-
-  /* ======================================
-     FEUILLE STOCK
-  ====================================== */
 
   const stockData = products.map(
     (product) => ({
@@ -819,10 +797,6 @@ function exportDashboardToExcel({
     { wch: 12 },
   ];
 
-  /* ======================================
-     CRÉER LE CLASSEUR
-  ====================================== */
-
   const workbook =
     XLSX.utils.book_new();
 
@@ -850,10 +824,6 @@ function exportDashboardToExcel({
     "Stock"
   );
 
-  /* ======================================
-     NOM DU FICHIER
-  ====================================== */
-
   const date =
     new Date()
       .toISOString()
@@ -879,32 +849,111 @@ function AdminDashboard() {
   const [sales, setSales] =
     useState([]);
 
+  const [todaySales, setTodaySales] =
+    useState([]);
+
+  const [todayRevenue, setTodayRevenue] =
+    useState(0);
+
+  const [todaySalesCount, setTodaySalesCount] =
+    useState(0);
+
+  const [todayProductsSold, setTodayProductsSold] =
+    useState(0);
+
+  const [loading, setLoading] =
+    useState(true);
+
   /* ========================================
-     CHARGEMENT
+     CHARGEMENT DU DASHBOARD
   ======================================== */
 
-  const loadDashboard = () => {
-    setProducts(
-      getProducts()
-    );
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
 
-    setSales(
-      getSales()
-    );
+      const [
+        productsFromSupabase,
+        salesFromSupabase,
+        todaySalesFromSupabase,
+        todayRevenueFromSupabase,
+        todaySalesCountFromSupabase,
+        todayProductsSoldFromSupabase,
+      ] = await Promise.all([
+        getProducts(),
+        getSales(),
+        getTodaySales(),
+        getTodayRevenue(),
+        getTodaySalesCount(),
+        getTodayProductsSold(),
+      ]);
+
+      setProducts(
+        Array.isArray(productsFromSupabase)
+          ? productsFromSupabase
+          : []
+      );
+
+      setSales(
+        Array.isArray(salesFromSupabase)
+          ? salesFromSupabase
+          : []
+      );
+
+      setTodaySales(
+        Array.isArray(todaySalesFromSupabase)
+          ? todaySalesFromSupabase
+          : []
+      );
+
+      setTodayRevenue(
+        Number(
+          todayRevenueFromSupabase || 0
+        )
+      );
+
+      setTodaySalesCount(
+        Number(
+          todaySalesCountFromSupabase || 0
+        )
+      );
+
+      setTodayProductsSold(
+        Number(
+          todayProductsSoldFromSupabase || 0
+        )
+      );
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors du chargement du tableau de bord :",
+        error
+      );
+
+      setProducts([]);
+      setSales([]);
+      setTodaySales([]);
+      setTodayRevenue(0);
+      setTodaySalesCount(0);
+      setTodayProductsSold(0);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  /* ========================================
+     ÉVÉNEMENTS
+  ======================================== */
 
   useEffect(() => {
     loadDashboard();
 
-    const handleProductsUpdated =
-      () => {
-        loadDashboard();
-      };
+    const handleProductsUpdated = () => {
+      loadDashboard();
+    };
 
-    const handleSalesUpdated =
-      () => {
-        loadDashboard();
-      };
+    const handleSalesUpdated = () => {
+      loadDashboard();
+    };
 
     window.addEventListener(
       "productsUpdated",
@@ -928,22 +977,6 @@ function AdminDashboard() {
       );
     };
   }, []);
-
-  /* ========================================
-     STATISTIQUES DU JOUR
-  ======================================== */
-
-  const todaySales =
-    getTodaySales();
-
-  const todayRevenue =
-    getTodayRevenue();
-
-  const todaySalesCount =
-    getTodaySalesCount();
-
-  const todayProductsSold =
-    getTodayProductsSold();
 
   /* ========================================
      STOCK
@@ -979,35 +1012,59 @@ function AdminDashboard() {
 
       sales.forEach(
         (sale) => {
-          sale.items?.forEach(
+          const items =
+            Array.isArray(sale.items)
+              ? sale.items
+              : [];
+
+          items.forEach(
             (item) => {
+              const itemId =
+                item.id ||
+                item.productId ||
+                item.product_id ||
+                item.name;
+
+              if (!itemId) {
+                return;
+              }
+
               if (
-                !quantities[item.id]
+                !quantities[itemId]
               ) {
-                quantities[item.id] = {
-                  id: item.id,
-                  name: item.name,
+                quantities[itemId] = {
+                  id: itemId,
+                  name:
+                    item.name ||
+                    "Produit",
                   quantity: 0,
                   revenue: 0,
                 };
               }
 
-              quantities[
-                item.id
-              ].quantity +=
+              const quantity =
                 Number(
                   item.quantity || 0
                 );
 
-              quantities[
-                item.id
-              ].revenue +=
+              const price =
                 Number(
-                  item.price || 0
-                ) *
-                Number(
-                  item.quantity || 0
+                  item.price ||
+                  item.unitPrice ||
+                  item.unit_price ||
+                  0
                 );
+
+              quantities[
+                itemId
+              ].quantity +=
+                quantity;
+
+              quantities[
+                itemId
+              ].revenue +=
+                price *
+                quantity;
             }
           );
         }
@@ -1029,7 +1086,9 @@ function AdminDashboard() {
   ======================================== */
 
   const recentSales =
-    sales.slice(0, 5);
+    useMemo(() => {
+      return sales.slice(0, 5);
+    }, [sales]);
 
   /* ========================================
      ACTIONS
@@ -1577,7 +1636,6 @@ function AdminDashboard() {
                       </span>
 
                     </div>
-
                   )
                 )}
 

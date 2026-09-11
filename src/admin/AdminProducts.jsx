@@ -29,14 +29,23 @@ function AdminProducts() {
   // CHARGER LES PRODUITS
   // ========================================
 
-  const loadProducts = () => {
-    const currentProducts = getProducts();
+  const loadProducts = async () => {
+    try {
+      const currentProducts = await getProducts();
 
-    setProducts(
-      Array.isArray(currentProducts)
-        ? currentProducts
-        : []
-    );
+      setProducts(
+        Array.isArray(currentProducts)
+          ? currentProducts
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors du chargement des produits :",
+        error
+      );
+
+      setProducts([]);
+    }
   };
 
   // ========================================
@@ -112,7 +121,7 @@ function AdminProducts() {
   // SUPPRIMER UN PRODUIT
   // ========================================
 
-  const handleDelete = (product) => {
+  const handleDelete = async (product) => {
     const confirmed = window.confirm(
       `Voulez-vous vraiment supprimer "${product.name}" ?`
     );
@@ -121,10 +130,26 @@ function AdminProducts() {
       return;
     }
 
-    deleteProduct(product.id);
+    try {
+      await deleteProduct(product.id);
 
-    // Recharger immédiatement
-    loadProducts();
+      // Recharger depuis Supabase
+      await loadProducts();
+
+      console.log(
+        "✅ Produit supprimé avec succès :",
+        product.name
+      );
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors de la suppression du produit :",
+        error
+      );
+
+      alert(
+        "Impossible de supprimer ce produit. Veuillez réessayer."
+      );
+    }
   };
 
   // ========================================
@@ -430,6 +455,20 @@ function AdminProducts() {
                                 product.price
                               )}
                             </strong>
+
+                            {product.promo &&
+                              Number(
+                                product.oldPrice || 0
+                              ) >
+                                Number(
+                                  product.price || 0
+                                ) && (
+                                  <small className="admin-old-price">
+                                    {formatPrice(
+                                      product.oldPrice
+                                    )}
+                                  </small>
+                                )}
 
                           </td>
 

@@ -1,34 +1,104 @@
 // ========================================
 // GESTION DES VENTES
 // ========================================
+//
+// Les commandes Supabase sont la source
+// de vérité pour l'affichage des ventes.
+//
+// La table "sales" peut continuer à servir
+// au suivi détaillé des lignes de vente,
+// mais l'interface admin utilise les commandes.
+// ========================================
 
-const SALES_STORAGE_KEY =
-  "senepicerie_sales";
+import { supabase } from "./supabaseClient";
+
+const ORDERS_TABLE = "orders";
 
 // ========================================
-// RÉCUPÉRER LES VENTES
+// NORMALISER UNE VENTE
 // ========================================
 
-export function getSales() {
-  const storedSales =
-    localStorage.getItem(
-      SALES_STORAGE_KEY
-    );
-
-  if (!storedSales) {
-    return [];
+function normalizeSale(order) {
+  if (!order) {
+    return null;
   }
 
-  try {
-    const sales =
-      JSON.parse(storedSales);
+  const customer =
+    order.customer &&
+    typeof order.customer === "object"
+      ? order.customer
+      : {};
 
-    return Array.isArray(sales)
-      ? sales
+  const items =
+    Array.isArray(order.items)
+      ? order.items
       : [];
+
+  return {
+    id:
+      order.id || "",
+
+    orderId:
+      order.id || "",
+
+    date:
+      order.date ||
+      order.created_at ||
+      new Date().toISOString(),
+
+    customer,
+
+    items,
+
+    subtotal:
+      Number(order.subtotal) || 0,
+
+    shipping:
+      Number(order.shipping) || 0,
+
+    total:
+      Number(order.total) || 0,
+
+    payment:
+      order.payment || "",
+
+    status:
+      order.status || "Enregistrée",
+  };
+}
+
+// ========================================
+// RÉCUPÉRER TOUTES LES VENTES
+// ========================================
+
+export async function getSales() {
+  try {
+    const { data, error } = await supabase
+      .from(ORDERS_TABLE)
+      .select("*")
+      .order("date", {
+        ascending: false,
+      });
+
+    if (error) {
+      console.error(
+        "❌ Erreur Supabase lors du chargement des ventes :",
+        error
+      );
+
+      return [];
+    }
+
+    const sales = Array.isArray(data)
+      ? data
+          .map(normalizeSale)
+          .filter(Boolean)
+      : [];
+
+    return sales;
   } catch (error) {
     console.error(
-      "Erreur lors de la lecture des ventes :",
+      "❌ Erreur lors du chargement des ventes :",
       error
     );
 
@@ -37,66 +107,57 @@ export function getSales() {
 }
 
 // ========================================
-// ENREGISTRER LES VENTES
+// ENREGISTRER UNE VENTE
+// ========================================
+//
+// Compatibilité avec l'ancien Checkout.
+//
+// La commande est désormais enregistrée
+// dans Supabase par ordersManager.
+//
+// Cette fonction ne crée donc pas une
+// deuxième vente dans localStorage.
+//
 // ========================================
 
-export function saveSales(sales) {
-  localStorage.setItem(
-    SALES_STORAGE_KEY,
-    JSON.stringify(sales)
-  );
-
-  window.dispatchEvent(
-    new Event("salesUpdated")
-  );
-}
-
-// ========================================
-// AJOUTER UNE VENTE
-// ========================================
-
-export function addSale(sale) {
-  const sales = getSales();
-
-  const newSale = {
+export async function addSale(sale) {
+  const newSale = normalizeSale({
     id:
-      sale.id ||
+      sale?.orderId ||
+      sale?.id ||
       `VTE-${Date.now()}`,
 
-    orderId:
-      sale.orderId || "",
-
     date:
-      sale.date ||
+      sale?.date ||
       new Date().toISOString(),
 
     customer:
-      sale.customer || {},
+      sale?.customer || {},
 
     items:
-      Array.isArray(sale.items)
+      Array.isArray(sale?.items)
         ? sale.items
         : [],
 
     subtotal:
-      Number(sale.subtotal) || 0,
+      Number(sale?.subtotal) || 0,
 
     shipping:
-      Number(sale.shipping) || 0,
+      Number(sale?.shipping) || 0,
 
     total:
-      Number(sale.total) || 0,
+      Number(sale?.total) || 0,
 
     payment:
-      sale.payment || "",
+      sale?.payment || "",
 
     status:
-      sale.status || "Enregistrée",
-  };
+      sale?.status || "Enregistrée",
+  });
 
-  sales.unshift(newSale);
-
-  saveSales(sales);
+  window.dispatchEvent(
+    new Event("salesUpdated")
+  );
 
   return newSale;
 }
@@ -105,12 +166,15 @@ export function addSale(sale) {
 // RECHERCHER UNE VENTE
 // ========================================
 
-export function getSaleById(id) {
-  const sales = getSales();
+export async function getSaleById(id) {
+  const sales = await getSales();
 
-  return sales.find(
-    (sale) =>
-      String(sale.id) === String(id)
+  return (
+    sales.find(
+      (sale) =>
+        String(sale.id) ===
+        String(id)
+    ) || null
   );
 }
 
@@ -118,10 +182,10 @@ export function getSaleById(id) {
 // VENTES D'UNE COMMANDE
 // ========================================
 
-export function getSalesByOrderId(
+export async function getSalesByOrderId(
   orderId
 ) {
-  const sales = getSales();
+  const sales = await getSales();
 
   return sales.filter(
     (sale) =>
@@ -133,30 +197,31 @@ export function getSalesByOrderId(
 // ========================================
 // SUPPRIMER LES VENTES D'UNE COMMANDE
 // ========================================
+//
+// Comme les ventes affichées sont dérivées
+// des commandes, supprimer la commande
+// suffit à les faire disparaître.
+//
+// On déclenche simplement l'événement
+// pour actualiser les écrans Admin.
+// ========================================
 
-export function deleteSalesByOrderId(
+export async function deleteSalesByOrderId(
   orderId
 ) {
-  const sales = getSales();
+  window.dispatchEvent(
+    new Event("salesUpdated")
+  );
 
-  const filteredSales =
-    sales.filter(
-      (sale) =>
-        String(sale.orderId) !==
-        String(orderId)
-    );
-
-  saveSales(filteredSales);
-
-  return filteredSales;
+  return [];
 }
 
 // ========================================
 // VENTES DU JOUR
 // ========================================
 
-export function getTodaySales() {
-  const sales = getSales();
+export async function getTodaySales() {
+  const sales = await getSales();
 
   const today =
     new Date();
@@ -165,6 +230,14 @@ export function getTodaySales() {
     (sale) => {
       const saleDate =
         new Date(sale.date);
+
+      if (
+        Number.isNaN(
+          saleDate.getTime()
+        )
+      ) {
+        return false;
+      }
 
       return (
         saleDate.getFullYear() ===
@@ -182,9 +255,9 @@ export function getTodaySales() {
 // CHIFFRE D'AFFAIRES DU JOUR
 // ========================================
 
-export function getTodayRevenue() {
+export async function getTodayRevenue() {
   const sales =
-    getTodaySales();
+    await getTodaySales();
 
   return sales.reduce(
     (total, sale) =>
@@ -198,18 +271,20 @@ export function getTodayRevenue() {
 // NOMBRE DE VENTES DU JOUR
 // ========================================
 
-export function getTodaySalesCount() {
-  return getTodaySales()
-    .length;
+export async function getTodaySalesCount() {
+  const sales =
+    await getTodaySales();
+
+  return sales.length;
 }
 
 // ========================================
 // PRODUITS VENDUS AUJOURD'HUI
 // ========================================
 
-export function getTodayProductsSold() {
+export async function getTodayProductsSold() {
   const sales =
-    getTodaySales();
+    await getTodaySales();
 
   return sales.reduce(
     (total, sale) => {
@@ -240,9 +315,9 @@ export function getTodayProductsSold() {
 // CHIFFRE D'AFFAIRES TOTAL
 // ========================================
 
-export function getTotalRevenue() {
+export async function getTotalRevenue() {
   const sales =
-    getSales();
+    await getSales();
 
   return sales.reduce(
     (total, sale) =>
@@ -256,17 +331,20 @@ export function getTotalRevenue() {
 // NOMBRE TOTAL DE VENTES
 // ========================================
 
-export function getTotalSalesCount() {
-  return getSales().length;
+export async function getTotalSalesCount() {
+  const sales =
+    await getSales();
+
+  return sales.length;
 }
 
 // ========================================
 // PRODUITS VENDUS AU TOTAL
 // ========================================
 
-export function getTotalProductsSold() {
+export async function getTotalProductsSold() {
   const sales =
-    getSales();
+    await getSales();
 
   return sales.reduce(
     (total, sale) => {
@@ -297,50 +375,39 @@ export function getTotalProductsSold() {
 // NETTOYER LES VENTES ORPHELINES
 // ========================================
 //
-// Cette fonction sera appelée par
-// ordersManager.js.
+// Les ventes affichées étant dérivées
+// des commandes Supabase, les commandes
+// supprimées disparaissent automatiquement.
 //
-// Elle supprime les ventes dont
-// la commande n'existe plus.
+// Cette fonction force simplement
+// l'actualisation de l'interface.
 // ========================================
 
-export function cleanSalesByOrders(
+export async function cleanSalesByOrders(
   orders
 ) {
-  const sales =
-    getSales();
+  window.dispatchEvent(
+    new Event("salesUpdated")
+  );
 
-  const orderIds =
-    new Set(
-      (Array.isArray(orders)
-        ? orders
-        : []
-      ).map(
-        (order) =>
-          String(order.id)
-      )
-    );
-
-  const validSales =
-    sales.filter(
-      (sale) =>
-        sale.orderId &&
-        orderIds.has(
-          String(sale.orderId)
-        )
-    );
-
-  saveSales(validSales);
-
-  return validSales;
+  return await getSales();
 }
 
 // ========================================
 // RÉINITIALISER LES VENTES
 // ========================================
+//
+// IMPORTANT : on ne supprime pas les
+// commandes ici.
+//
+// Cette fonction est conservée pour
+// compatibilité avec l'ancien code.
+// ========================================
 
-export function clearSales() {
-  saveSales([]);
+export async function clearSales() {
+  window.dispatchEvent(
+    new Event("salesUpdated")
+  );
 
   return [];
 }

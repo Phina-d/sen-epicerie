@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import Categories from "./pages/Categories";
@@ -16,8 +17,9 @@ import Support from "./pages/Support";
 import MyOrders from "./pages/MyOrders";
 import OrderTracking from "./pages/OrderTracking";
 import Terms from "./pages/Terms";
-import ScrollToTopButton from "./components/ScrollToTopButton";
 import Promotions from "./pages/Promotions";
+
+import ScrollToTopButton from "./components/ScrollToTopButton";
 
 import AdminDashboard from "./admin/AdminDashboard";
 import AdminProducts from "./admin/AdminProducts";
@@ -32,14 +34,36 @@ import AdminSettings from "./admin/AdminSettings";
 import AdminStatistics from "./admin/AdminStatistics";
 import AdminNotifications from "./admin/AdminNotifications";
 
+
 function App() {
+
+  /*
+    Vite connaît automatiquement la base de l'application.
+
+    En développement :
+    / ou éventuellement /sen-epicerie/
+
+    Sur GitHub Pages :
+    /sen-epicerie/
+  */
+  const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
+
       <Navbar />
+
       <Routes>
 
-        {/* BOUTIQUE */}
-        <Route path="/" element={<Home />} />
+        {/* ================================
+            BOUTIQUE
+        ================================= */}
+
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
         <Route
           path="/shop"
@@ -62,105 +86,128 @@ function App() {
         />
 
         <Route
-  path="/favorites"
-  element={<Favorites />}
-/>
+          path="/favorites"
+          element={<Favorites />}
+        />
 
-<Route
-  path="/about"
-  element={<About />}
-/>
+        <Route
+          path="/about"
+          element={<About />}
+        />
 
-<Route
-  path="/order-tracking"
-  element={<OrderTracking />}
-/>
+        <Route
+          path="/order-tracking"
+          element={<OrderTracking />}
+        />
 
-<Route path="/support" element={<Support />} />
+        <Route
+          path="/support"
+          element={<Support />}
+        />
 
-<Route path="/help" element={<Help />} />
+        <Route
+          path="/help"
+          element={<Help />}
+        />
 
-<Route
-  path="/terms"
-  element={<Terms />}
-/>
+        <Route
+          path="/terms"
+          element={<Terms />}
+        />
 
-<Route
-  path="/promotions"
-  element={<Promotions />}
-/>
+        <Route
+          path="/promotions"
+          element={<Promotions />}
+        />
+
         <Route
           path="/checkout"
           element={<Checkout />}
         />
-        <Route path="/order/:id" element={<OrderDetails />} />
+
         <Route
-  path="/my-orders"
-  element={<MyOrders />}
-/>
+          path="/order/:id"
+          element={<OrderDetails />}
+        />
 
-        {/* ADMINISTRATION */}
-       <Route path="/admin" element={<AdminLayout />}>
+        <Route
+          path="/my-orders"
+          element={<MyOrders />}
+        />
 
-  <Route
-    index
-    element={<AdminDashboard />}
-  />
 
-  <Route
-    path="products"
-    element={<AdminProducts />}
-  />
+        {/* ================================
+            ADMINISTRATION
+        ================================= */}
 
-  <Route
-    path="products/add"
-    element={<AdminAddProduct />}
-  />
+        <Route
+          path="/admin"
+          element={<AdminLayout />}
+        >
 
-  <Route
-    path="products/edit/:id"
-    element={<AdminEditProduct />}
-  />
+          <Route
+            index
+            element={<AdminDashboard />}
+          />
 
-  <Route
-  path="/admin/orders"
-  element={<AdminOrders />}
-/>
+          <Route
+            path="products"
+            element={<AdminProducts />}
+          />
 
-<Route
-  path="/admin/sales"
-  element={<AdminSales />}
-/>
+          <Route
+            path="products/add"
+            element={<AdminAddProduct />}
+          />
 
-<Route
-  path="categories"
-  element={<AdminCategories />}
-/>
+          <Route
+            path="products/edit/:id"
+            element={<AdminEditProduct />}
+          />
 
-<Route
-  path="users"
-  element={<AdminUsers />}
-/>
+          <Route
+            path="orders"
+            element={<AdminOrders />}
+          />
 
-<Route
-  path="settings"
-  element={<AdminSettings />}
-/>
+          <Route
+            path="sales"
+            element={<AdminSales />}
+          />
 
-<Route
-  path="statistics"
-  element={<AdminStatistics />}
-/>
+          <Route
+            path="categories"
+            element={<AdminCategories />}
+          />
 
-<Route
-  path="/admin/notifications"
-  element={<AdminNotifications />}
-/>
+          <Route
+            path="users"
+            element={<AdminUsers />}
+          />
 
-</Route>
+          <Route
+            path="settings"
+            element={<AdminSettings />}
+          />
+
+          <Route
+            path="statistics"
+            element={<AdminStatistics />}
+          />
+
+          <Route
+            path="notifications"
+            element={<AdminNotifications />}
+          />
+
+        </Route>
+
       </Routes>
+
       <ScrollToTopButton />
+
       <Footer />
+
     </BrowserRouter>
   );
 }

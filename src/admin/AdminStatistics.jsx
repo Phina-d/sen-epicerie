@@ -259,9 +259,7 @@ function printStatistics({
 
             <div class="date">
               Rapport généré le
-              ${new Date().toLocaleString(
-                "fr-FR"
-              )}
+              ${new Date().toLocaleString("fr-FR")}
             </div>
 
           </header>
@@ -337,9 +335,7 @@ function printStatistics({
 
                 <tr>
                   <td>Chiffre d'affaires</td>
-                  <td>${formatPrice(
-                    todayRevenue
-                  )}</td>
+                  <td>${formatPrice(todayRevenue)}</td>
                 </tr>
 
                 <tr>
@@ -509,62 +505,41 @@ function exportStatisticsToExcel({
     },
   ];
 
-  const sevenDaysData = last7Days.map(
-    (day) => ({
-      Date: day.label,
-      "Chiffre d'affaires":
-        day.revenue,
-      Ventes:
-        day.sales,
-      "Produits vendus":
-        day.products,
+  const sevenDaysData = last7Days.map((day) => ({
+    Date: day.label,
+    "Chiffre d'affaires": day.revenue,
+    Ventes: day.sales,
+    "Produits vendus": day.products,
+  }));
+
+  const productsData = bestSellingProducts.map(
+    (product, index) => ({
+      Rang: index + 1,
+      Produit: product.name || "",
+      Quantité: product.quantity,
+      "Chiffre d'affaires": product.revenue,
     })
   );
 
-  const productsData =
-    bestSellingProducts.map(
-      (product, index) => ({
-        Rang: index + 1,
-        Produit:
-          product.name || "",
-        Quantité:
-          product.quantity,
-        "Chiffre d'affaires":
-          product.revenue,
-      })
-    );
-
-  const paymentsData =
-    paymentStatistics.map(
-      (payment) => ({
-        "Mode de paiement":
-          payment.name,
-        "Nombre de ventes":
-          payment.count,
-        "Chiffre d'affaires":
-          payment.revenue,
-      })
-    );
+  const paymentsData = paymentStatistics.map(
+    (payment) => ({
+      "Mode de paiement": payment.name,
+      "Nombre de ventes": payment.count,
+      "Chiffre d'affaires": payment.revenue,
+    })
+  );
 
   const summarySheet =
-    XLSX.utils.json_to_sheet(
-      summaryData
-    );
+    XLSX.utils.json_to_sheet(summaryData);
 
   const sevenDaysSheet =
-    XLSX.utils.json_to_sheet(
-      sevenDaysData
-    );
+    XLSX.utils.json_to_sheet(sevenDaysData);
 
   const productsSheet =
-    XLSX.utils.json_to_sheet(
-      productsData
-    );
+    XLSX.utils.json_to_sheet(productsData);
 
   const paymentsSheet =
-    XLSX.utils.json_to_sheet(
-      paymentsData
-    );
+    XLSX.utils.json_to_sheet(paymentsData);
 
   summarySheet["!cols"] = [
     {
@@ -662,32 +637,96 @@ function exportStatisticsToExcel({
 function AdminStatistics() {
   const [sales, setSales] = useState([]);
 
-  const loadStatistics = () => {
-    setSales(getSales());
+  const [todayRevenue, setTodayRevenue] =
+    useState(0);
+
+  const [todaySalesCount, setTodaySalesCount] =
+    useState(0);
+
+  const [todayProductsSold, setTodayProductsSold] =
+    useState(0);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  /* ========================================
+     CHARGEMENT SUPABASE
+  ======================================== */
+
+  const loadStatistics = async () => {
+    try {
+      setLoading(true);
+
+      const [
+        salesFromSupabase,
+        todayRevenueFromSupabase,
+        todaySalesCountFromSupabase,
+        todayProductsSoldFromSupabase,
+      ] = await Promise.all([
+        getSales(),
+        getTodayRevenue(),
+        getTodaySalesCount(),
+        getTodayProductsSold(),
+      ]);
+
+      setSales(
+        Array.isArray(salesFromSupabase)
+          ? salesFromSupabase
+          : []
+      );
+
+      setTodayRevenue(
+        Number(todayRevenueFromSupabase) || 0
+      );
+
+      setTodaySalesCount(
+        Number(todaySalesCountFromSupabase) || 0
+      );
+
+      setTodayProductsSold(
+        Number(todayProductsSoldFromSupabase) || 0
+      );
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors du chargement des statistiques :",
+        error
+      );
+
+      setSales([]);
+      setTodayRevenue(0);
+      setTodaySalesCount(0);
+      setTodayProductsSold(0);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadStatistics();
 
+    const handleStatisticsUpdate = () => {
+      loadStatistics();
+    };
+
     window.addEventListener(
       "salesUpdated",
-      loadStatistics
+      handleStatisticsUpdate
     );
 
     window.addEventListener(
       "ordersUpdated",
-      loadStatistics
+      handleStatisticsUpdate
     );
 
     return () => {
       window.removeEventListener(
         "salesUpdated",
-        loadStatistics
+        handleStatisticsUpdate
       );
 
       window.removeEventListener(
         "ordersUpdated",
-        loadStatistics
+        handleStatisticsUpdate
       );
     };
   }, []);
@@ -699,7 +738,7 @@ function AdminStatistics() {
   const totalRevenue = useMemo(() => {
     return sales.reduce(
       (total, sale) =>
-        total + Number(sale.total || 0),
+        total + Number(sale?.total || 0),
       0
     );
   }, [sales]);
@@ -709,11 +748,16 @@ function AdminStatistics() {
   const totalProductsSold = useMemo(() => {
     return sales.reduce(
       (total, sale) => {
+        const items = Array.isArray(sale?.items)
+          ? sale.items
+          : [];
+
         return (
           total +
-          (sale.items || []).reduce(
+          items.reduce(
             (sum, item) =>
-              sum + Number(item.quantity || 0),
+              sum +
+              Number(item?.quantity || 0),
             0
           )
         );
@@ -725,14 +769,6 @@ function AdminStatistics() {
   const averageSale = totalSales
     ? totalRevenue / totalSales
     : 0;
-
-  /* ========================================
-     STATISTIQUES DU JOUR
-  ======================================== */
-
-  const todayRevenue = getTodayRevenue();
-  const todaySalesCount = getTodaySalesCount();
-  const todayProductsSold = getTodayProductsSold();
 
   /* ========================================
      ÉVOLUTION SUR 7 JOURS
@@ -761,6 +797,8 @@ function AdminStatistics() {
     }
 
     sales.forEach((sale) => {
+      if (!sale?.date) return;
+
       const key = getDateKey(sale.date);
 
       const day = days.find(
@@ -775,12 +813,14 @@ function AdminStatistics() {
 
       day.sales += 1;
 
-      day.products += (
-        sale.items || []
-      ).reduce(
+      const items = Array.isArray(sale.items)
+        ? sale.items
+        : [];
+
+      day.products += items.reduce(
         (total, item) =>
           total +
-          Number(item.quantity || 0),
+          Number(item?.quantity || 0),
         0
       );
     });
@@ -810,22 +850,46 @@ function AdminStatistics() {
     const products = {};
 
     sales.forEach((sale) => {
-      (sale.items || []).forEach((item) => {
-        if (!products[item.id]) {
-          products[item.id] = {
-            id: item.id,
-            name: item.name,
+      const items = Array.isArray(sale?.items)
+        ? sale.items
+        : [];
+
+      items.forEach((item) => {
+        const productId =
+          item?.id ||
+          item?.productId ||
+          item?.product_id ||
+          item?.name ||
+          "produit-inconnu";
+
+        if (!products[productId]) {
+          products[productId] = {
+            id: productId,
+            name:
+              item?.name ||
+              item?.productName ||
+              "Produit",
             quantity: 0,
             revenue: 0,
           };
         }
 
-        products[item.id].quantity +=
-          Number(item.quantity || 0);
+        const quantity =
+          Number(item?.quantity || 0);
 
-        products[item.id].revenue +=
-          Number(item.price || 0) *
-          Number(item.quantity || 0);
+        const unitPrice =
+          Number(
+            item?.price ??
+            item?.unitPrice ??
+            item?.unit_price ??
+            0
+          );
+
+        products[productId].quantity +=
+          quantity;
+
+        products[productId].revenue +=
+          unitPrice * quantity;
       });
     });
 
@@ -846,7 +910,7 @@ function AdminStatistics() {
 
     sales.forEach((sale) => {
       const payment =
-        sale.payment || "Non renseigné";
+        sale?.payment || "Non renseigné";
 
       if (!payments[payment]) {
         payments[payment] = {
@@ -859,7 +923,7 @@ function AdminStatistics() {
       payments[payment].count += 1;
 
       payments[payment].revenue +=
-        Number(sale.total || 0);
+        Number(sale?.total || 0);
     });
 
     return Object.values(payments).sort(
@@ -904,65 +968,65 @@ function AdminStatistics() {
             </div>
 
             <div
-  className="admin-statistics-header-actions"
-  style={{
-    display: "flex",
-    gap: "10px",
-    alignItems: "center",
-    flexWrap: "wrap",
-  }}
->
+              className="admin-statistics-header-actions"
+              style={{
+                display: "flex",
+                gap: "10px",
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
 
-  <button
-    type="button"
-    className="statistics-print-button"
-    onClick={() =>
-      printStatistics({
-        totalRevenue,
-        totalSales,
-        totalProductsSold,
-        averageSale,
-        todayRevenue,
-        todaySalesCount,
-        todayProductsSold,
-        last7Days,
-        bestSellingProducts,
-        paymentStatistics,
-      })
-    }
-  >
-    🖨️ Imprimer
-  </button>
+              <button
+                type="button"
+                className="statistics-print-button"
+                onClick={() =>
+                  printStatistics({
+                    totalRevenue,
+                    totalSales,
+                    totalProductsSold,
+                    averageSale,
+                    todayRevenue,
+                    todaySalesCount,
+                    todayProductsSold,
+                    last7Days,
+                    bestSellingProducts,
+                    paymentStatistics,
+                  })
+                }
+              >
+                🖨️ Imprimer
+              </button>
 
-<button
-  type="button"
-  className="statistics-excel-button"
-  onClick={() =>
-    exportStatisticsToExcel({
-      totalRevenue,
-      totalSales,
-      totalProductsSold,
-      averageSale,
-      todayRevenue,
-      todaySalesCount,
-      todayProductsSold,
-      last7Days,
-      bestSellingProducts,
-      paymentStatistics,
-    })
-  }
->
-  📊 Excel
-</button>
+              <button
+                type="button"
+                className="statistics-excel-button"
+                onClick={() =>
+                  exportStatisticsToExcel({
+                    totalRevenue,
+                    totalSales,
+                    totalProductsSold,
+                    averageSale,
+                    todayRevenue,
+                    todaySalesCount,
+                    todayProductsSold,
+                    last7Days,
+                    bestSellingProducts,
+                    paymentStatistics,
+                  })
+                }
+              >
+                📊 Excel
+              </button>
 
-  <Link
-    to="/admin"
-    className="admin-statistics-back"
-  >
-    ← Tableau de bord
-  </Link>
+              <Link
+                to="/admin"
+                className="admin-statistics-back"
+              >
+                ← Tableau de bord
+              </Link>
 
-</div>
+            </div>
 
           </div>
 
@@ -997,7 +1061,9 @@ function AdminStatistics() {
                 </span>
 
                 <strong>
-                  {formatPrice(totalRevenue)}
+                  {loading
+                    ? "Chargement..."
+                    : formatPrice(totalRevenue)}
                 </strong>
 
               </div>
@@ -1017,7 +1083,9 @@ function AdminStatistics() {
                 </span>
 
                 <strong>
-                  {totalSales}
+                  {loading
+                    ? "..."
+                    : totalSales}
                 </strong>
 
               </div>
@@ -1037,7 +1105,9 @@ function AdminStatistics() {
                 </span>
 
                 <strong>
-                  {totalProductsSold}
+                  {loading
+                    ? "..."
+                    : totalProductsSold}
                 </strong>
 
               </div>
@@ -1057,7 +1127,9 @@ function AdminStatistics() {
                 </span>
 
                 <strong>
-                  {formatPrice(averageSale)}
+                  {loading
+                    ? "Chargement..."
+                    : formatPrice(averageSale)}
                 </strong>
 
               </div>
@@ -1096,7 +1168,9 @@ function AdminStatistics() {
                 </span>
 
                 <strong>
-                  {formatPrice(todayRevenue)}
+                  {loading
+                    ? "Chargement..."
+                    : formatPrice(todayRevenue)}
                 </strong>
               </div>
 
@@ -1106,7 +1180,9 @@ function AdminStatistics() {
                 </span>
 
                 <strong>
-                  {todaySalesCount}
+                  {loading
+                    ? "..."
+                    : todaySalesCount}
                 </strong>
               </div>
 
@@ -1116,7 +1192,9 @@ function AdminStatistics() {
                 </span>
 
                 <strong>
-                  {todayProductsSold}
+                  {loading
+                    ? "..."
+                    : todayProductsSold}
                 </strong>
               </div>
 

@@ -1,82 +1,173 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+
 import ProductCard from "../components/ProductCard";
-import { getProducts } from "../utils/productsManager";
+import {
+  loadProductsFromSupabase,
+} from "../utils/productsManager";
+
 import "../styles/Shop.css";
 
 function Shop() {
-    const [searchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
-   const [category, setCategory] = useState(
+
+  const [category, setCategory] = useState(
     searchParams.get("category") || "Toutes"
   );
+
   const [sort, setSort] = useState("default");
 
+  // ========================================
+  // CHARGEMENT DES PRODUITS
+  // ========================================
+
   useEffect(() => {
-    const loadProducts = () => {
-      setProducts(getProducts());
+    let isMounted = true;
+
+    const loadProducts = async () => {
+      try {
+        const productsFromSupabase =
+          await loadProductsFromSupabase();
+
+        if (isMounted) {
+          setProducts(productsFromSupabase);
+        }
+      } catch (error) {
+        console.error(
+          "Erreur lors du chargement des produits :",
+          error
+        );
+      }
     };
 
     loadProducts();
 
+    // ======================================
+    // MISE À JOUR APRÈS MODIFICATION
+    // ======================================
+
+    const handleProductsUpdated = () => {
+      loadProducts();
+    };
+
     window.addEventListener(
       "productsUpdated",
-      loadProducts
+      handleProductsUpdated
     );
 
     return () => {
+      isMounted = false;
+
       window.removeEventListener(
         "productsUpdated",
-        loadProducts
+        handleProductsUpdated
       );
     };
   }, []);
+
+  // ========================================
+  // CATÉGORIES
+  // ========================================
 
   const categories = [
     "Toutes",
     ...new Set(
       products
-        .filter((product) => product.active !== false)
-        .map((product) => product.category)
+        .filter(
+          (product) =>
+            product.active !== false
+        )
+        .map(
+          (product) =>
+            product.category
+        )
+        .filter(Boolean)
     ),
   ];
 
+  // ========================================
+  // FILTRAGE + TRI
+  // ========================================
+
   const filteredProducts = useMemo(() => {
-    let result = products.filter((product) => {
-      // Ne montrer que les produits actifs
-      if (product.active === false) {
-        return false;
+    let result = products.filter(
+      (product) => {
+        // Ne montrer que les produits actifs
+        if (product.active === false) {
+          return false;
+        }
+
+        const productName =
+          typeof product.name === "string"
+            ? product.name
+            : "";
+
+        const productCategory =
+          product.category || "";
+
+        const matchesSearch =
+          productName
+            .toLowerCase()
+            .includes(
+              search.toLowerCase()
+            );
+
+        const matchesCategory =
+          category === "Toutes" ||
+          productCategory === category;
+
+        return (
+          matchesSearch &&
+          matchesCategory
+        );
       }
+    );
 
-      const matchesSearch = product.name
-        .toLowerCase()
-        .includes(search.toLowerCase());
-
-      const matchesCategory =
-        category === "Toutes" ||
-        product.category === category;
-
-      return matchesSearch && matchesCategory;
-    });
-
+    // Prix croissant
     if (sort === "price-asc") {
-      result.sort((a, b) => a.price - b.price);
+      result.sort(
+        (a, b) =>
+          Number(a.price) -
+          Number(b.price)
+      );
     }
 
+    // Prix décroissant
     if (sort === "price-desc") {
-      result.sort((a, b) => b.price - a.price);
+      result.sort(
+        (a, b) =>
+          Number(b.price) -
+          Number(a.price)
+      );
     }
 
+    // Nom
     if (sort === "name") {
       result.sort((a, b) =>
-        a.name.localeCompare(b.name)
+        String(a.name || "").localeCompare(
+          String(b.name || ""),
+          "fr",
+          {
+            sensitivity: "base",
+          }
+        )
       );
     }
 
     return result;
-  }, [products, search, category, sort]);
+  }, [
+    products,
+    search,
+    category,
+    sort,
+  ]);
 
+  // ========================================
+  // AFFICHAGE
+  // ========================================
 
   return (
     <main className="shop-page">
@@ -135,7 +226,6 @@ function Shop() {
               />
 
               {search && (
-
                 <button
                   type="button"
                   onClick={() =>
@@ -145,7 +235,6 @@ function Shop() {
                 >
                   ×
                 </button>
-
               )}
 
             </div>
@@ -192,24 +281,24 @@ function Shop() {
 
           <div className="category-filter">
 
-            {categories.map((item) => (
-
-              <button
-                key={item}
-                type="button"
-                className={
-                  category === item
-                    ? "category-button active"
-                    : "category-button"
-                }
-                onClick={() =>
-                  setCategory(item)
-                }
-              >
-                {item}
-              </button>
-
-            ))}
+            {categories.map(
+              (item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={
+                    category === item
+                      ? "category-button active"
+                      : "category-button"
+                  }
+                  onClick={() =>
+                    setCategory(item)
+                  }
+                >
+                  {item}
+                </button>
+              )
+            )}
 
           </div>
 
@@ -246,12 +335,10 @@ function Shop() {
 
               {filteredProducts.map(
                 (product) => (
-
                   <ProductCard
                     key={product.id}
                     product={product}
                   />
-
                 )
               )}
 

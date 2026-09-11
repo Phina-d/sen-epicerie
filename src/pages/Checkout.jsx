@@ -85,7 +85,10 @@ function getShopSettings() {
    FORMATAGE PRIX
 ======================================== */
 
-function formatPrice(value, currency = "FCFA") {
+function formatPrice(
+  value,
+  currency = "FCFA"
+) {
   return `${Number(value || 0).toLocaleString(
     "fr-FR"
   )} ${currency}`;
@@ -153,6 +156,13 @@ function Checkout() {
   ====================================== */
 
   const [error, setError] = useState("");
+
+  /* ======================================
+     TRAITEMENT
+  ====================================== */
+
+  const [processing, setProcessing] =
+    useState(false);
 
   /* ======================================
      FRAIS DE LIVRAISON
@@ -239,35 +249,49 @@ function Checkout() {
 
   /* ======================================
      VALIDATION DU STOCK
+     SUPABASE = ASYNCHRONE
   ====================================== */
 
-  const checkStock = () => {
+  const checkStock = async () => {
     for (const item of cart) {
-      const product =
-        getProductById(item.id);
+      try {
+        const product =
+          await getProductById(item.id);
 
-      if (!product) {
+        if (!product) {
+          return {
+            success: false,
+            message:
+              `Le produit "${item.name}" n'existe plus dans la boutique.`,
+          };
+        }
+
+        const availableStock =
+          Number(product.stock || 0);
+
+        const requestedQuantity =
+          Number(item.quantity || 0);
+
+        if (
+          availableStock <
+          requestedQuantity
+        ) {
+          return {
+            success: false,
+            message:
+              `Stock insuffisant pour "${product.name}". Stock disponible : ${availableStock}.`,
+          };
+        }
+      } catch (error) {
+        console.error(
+          `❌ Erreur lors de la vérification du stock de "${item.name}" :`,
+          error
+        );
+
         return {
           success: false,
           message:
-            `Le produit "${item.name}" n'existe plus dans la boutique.`,
-        };
-      }
-
-      const availableStock =
-        Number(product.stock || 0);
-
-      const requestedQuantity =
-        Number(item.quantity || 0);
-
-      if (
-        availableStock <
-        requestedQuantity
-      ) {
-        return {
-          success: false,
-          message:
-            `Stock insuffisant pour "${product.name}". Stock disponible : ${availableStock}.`,
+            `Impossible de vérifier le stock de "${item.name}". Veuillez réessayer.`,
         };
       }
     }
@@ -279,21 +303,35 @@ function Checkout() {
 
   /* ======================================
      DIMINUTION DU STOCK
+     SUPABASE = ASYNCHRONE
   ====================================== */
 
-  const updateStock = () => {
+  const updateStock = async () => {
     for (const item of cart) {
-      const result =
-        decreaseStock(
-          item.id,
-          Number(item.quantity || 0)
+      try {
+        const result =
+          await decreaseStock(
+            item.id,
+            Number(item.quantity || 0)
+          );
+
+        if (!result || !result.success) {
+          return {
+            success: false,
+            message:
+              result?.message ||
+              `Impossible de mettre à jour le stock de "${item.name}".`,
+          };
+        }
+      } catch (error) {
+        console.error(
+          `❌ Erreur lors de la mise à jour du stock de "${item.name}" :`,
+          error
         );
 
-      if (!result.success) {
         return {
           success: false,
           message:
-            result.message ||
             `Impossible de mettre à jour le stock de "${item.name}".`,
         };
       }
@@ -308,255 +346,307 @@ function Checkout() {
      ENREGISTREMENT COMMANDE
   ====================================== */
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (processing) {
+      return;
+    }
+
     setError("");
-
-    /* ====================================
-       INFORMATIONS CLIENT
-    ==================================== */
-
-    if (
-      !form.firstName.trim() ||
-      !form.lastName.trim() ||
-      !form.phone.trim() ||
-      !form.address.trim()
-    ) {
-      setError(
-        "Veuillez remplir tous les champs obligatoires."
-      );
-
-      return;
-    }
-
-    /* ====================================
-       PANIER
-    ==================================== */
-
-    if (!cart.length) {
-      setError(
-        "Votre panier est vide."
-      );
-
-      return;
-    }
-
-    /* ====================================
-       PAIEMENT
-    ==================================== */
-
-    if (noPaymentAvailable) {
-      setError(
-        "Aucun mode de paiement n'est actuellement disponible. Veuillez contacter la boutique."
-      );
-
-      return;
-    }
-
-    /* ====================================
-       VÉRIFIER LE PAIEMENT
-    ==================================== */
-
-    const selectedPayment =
-      availablePayments.find(
-        (payment) =>
-          payment.value ===
-          form.payment
-      );
-
-    if (!selectedPayment) {
-      setError(
-        "Veuillez sélectionner un mode de paiement disponible."
-      );
-
-      return;
-    }
-
-    /* ====================================
-       VÉRIFICATION DU STOCK
-    ==================================== */
-
-    const stockCheck =
-      checkStock();
-
-    if (!stockCheck.success) {
-      setError(
-        stockCheck.message
-      );
-
-      return;
-    }
-
-    /* ====================================
-       DIMINUTION DU STOCK
-    ==================================== */
-
-    const stockUpdate =
-      updateStock();
-
-    if (!stockUpdate.success) {
-      setError(
-        stockUpdate.message
-      );
-
-      return;
-    }
-
-    /* ====================================
-       ID DE LA COMMANDE
-    ==================================== */
-
-    const orderId =
-      `CMD-${Date.now()}`;
-
-    const orderDate =
-      new Date().toISOString();
-
-    /* ====================================
-       CRÉATION DE LA COMMANDE
-    ==================================== */
-
-    const order = {
-      id: orderId,
-
-      date: orderDate,
-
-      customer: {
-        firstName:
-          form.firstName.trim(),
-
-        lastName:
-          form.lastName.trim(),
-
-        phone:
-          form.phone.trim(),
-
-        address:
-          form.address.trim(),
-
-        zone:
-          form.zone,
-      },
-
-      payment:
-        form.payment,
-
-      items: cart.map(
-        (item) => ({
-          id: item.id,
-
-          name: item.name,
-
-          price:
-            Number(item.price || 0),
-
-          quantity:
-            Number(
-              item.quantity || 0
-            ),
-
-          unit:
-            item.unit || "unité",
-        })
-      ),
-
-      subtotal:
-        Number(cartTotal || 0),
-
-      shipping:
-        Number(shipping || 0),
-
-      total:
-        Number(grandTotal || 0),
-
-      status:
-        "En attente",
-    };
-
-    /* ====================================
-       ENREGISTRER LA COMMANDE
-    ==================================== */
-
-    const savedOrder =
-      addOrder(order);
-
-    /* ====================================
-       ENREGISTRER LA VENTE
-    ==================================== */
-
-    addSale({
-      id:
-        `VTE-${Date.now()}`,
-
-      orderId:
-        order.id,
-
-      date:
-        order.date,
-
-      customer:
-        order.customer,
-
-      items:
-        order.items,
-
-      subtotal:
-        order.subtotal,
-
-      shipping:
-        order.shipping,
-
-      total:
-        order.total,
-
-      payment:
-        order.payment,
-
-      status:
-        "Enregistrée",
-    });
-
-    /* ====================================
-       NOTIFICATION ADMIN
-    ==================================== */
-
-    if (
-      shopSettings.notifications
-    ) {
-      addNotification({
-        type:
-          "order",
-
-        title:
-          "Nouvelle commande",
-
-        message:
-          `La commande ${order.id} de ${order.customer.firstName} ${order.customer.lastName} vient d'être enregistrée.`,
-
-        orderId:
-          order.id,
-      });
-    }
-
-    /* ====================================
-       VIDER LE PANIER
-    ==================================== */
-
-    clearCart();
-
-    /* ====================================
-       REDIRECTION
-    ==================================== */
-
-    navigate(
-      `/order/${savedOrder.id}`,
-      {
-        state: {
-          order: savedOrder,
-        },
+    setProcessing(true);
+
+    try {
+      /* ====================================
+         INFORMATIONS CLIENT
+      ==================================== */
+
+      if (
+        !form.firstName.trim() ||
+        !form.lastName.trim() ||
+        !form.phone.trim() ||
+        !form.address.trim()
+      ) {
+        setError(
+          "Veuillez remplir tous les champs obligatoires."
+        );
+
+        setProcessing(false);
+
+        return;
       }
-    );
+
+      /* ====================================
+         PANIER
+      ==================================== */
+
+      if (!cart.length) {
+        setError(
+          "Votre panier est vide."
+        );
+
+        setProcessing(false);
+
+        return;
+      }
+
+      /* ====================================
+         PAIEMENT
+      ==================================== */
+
+      if (noPaymentAvailable) {
+        setError(
+          "Aucun mode de paiement n'est actuellement disponible. Veuillez contacter la boutique."
+        );
+
+        setProcessing(false);
+
+        return;
+      }
+
+      /* ====================================
+         VÉRIFIER LE PAIEMENT
+      ==================================== */
+
+      const selectedPayment =
+        availablePayments.find(
+          (payment) =>
+            payment.value ===
+            form.payment
+        );
+
+      if (!selectedPayment) {
+        setError(
+          "Veuillez sélectionner un mode de paiement disponible."
+        );
+
+        setProcessing(false);
+
+        return;
+      }
+
+      /* ====================================
+         VÉRIFICATION DU STOCK
+      ==================================== */
+
+      const stockCheck =
+        await checkStock();
+
+      if (!stockCheck.success) {
+        setError(
+          stockCheck.message
+        );
+
+        setProcessing(false);
+
+        return;
+      }
+
+      /* ====================================
+         DIMINUTION DU STOCK
+      ==================================== */
+
+      const stockUpdate =
+        await updateStock();
+
+      if (!stockUpdate.success) {
+        setError(
+          stockUpdate.message
+        );
+
+        setProcessing(false);
+
+        return;
+      }
+
+      /* ====================================
+         ID DE LA COMMANDE
+      ==================================== */
+
+      const orderId =
+        `CMD-${Date.now()}`;
+
+      const orderDate =
+        new Date().toISOString();
+
+      /* ====================================
+         CRÉATION DE LA COMMANDE
+      ==================================== */
+
+      const order = {
+        id: orderId,
+
+        date: orderDate,
+
+        customer: {
+          firstName:
+            form.firstName.trim(),
+
+          lastName:
+            form.lastName.trim(),
+
+          phone:
+            form.phone.trim(),
+
+          address:
+            form.address.trim(),
+
+          zone:
+            form.zone,
+        },
+
+        payment:
+          form.payment,
+
+        items: cart.map(
+          (item) => ({
+            id: item.id,
+
+            name: item.name,
+
+            price:
+              Number(item.price || 0),
+
+            quantity:
+              Number(
+                item.quantity || 0
+              ),
+
+            unit:
+              item.unit || "unité",
+          })
+        ),
+
+        subtotal:
+          Number(cartTotal || 0),
+
+        shipping:
+          Number(shipping || 0),
+
+        total:
+          Number(grandTotal || 0),
+
+        status:
+          "En attente",
+      };
+
+      /* ====================================
+         ENREGISTRER LA COMMANDE
+         SUPABASE = ASYNCHRONE
+      ==================================== */
+
+      const savedOrder =
+        await addOrder(order);
+
+      if (!savedOrder) {
+        throw new Error(
+          "La commande n'a pas pu être enregistrée."
+        );
+      }
+
+      /* ====================================
+         ENREGISTRER LA VENTE
+      ==================================== */
+
+      try {
+        await addSale({
+          id:
+            `VTE-${Date.now()}`,
+
+          orderId:
+            order.id,
+
+          date:
+            order.date,
+
+          customer:
+            order.customer,
+
+          items:
+            order.items,
+
+          subtotal:
+            order.subtotal,
+
+          shipping:
+            order.shipping,
+
+          total:
+            order.total,
+
+          payment:
+            order.payment,
+
+          status:
+            "Enregistrée",
+        });
+      } catch (saleError) {
+        console.error(
+          "⚠️ La commande est enregistrée mais la vente n'a pas pu être enregistrée :",
+          saleError
+        );
+      }
+
+      /* ====================================
+         NOTIFICATION ADMIN
+      ==================================== */
+
+      if (
+        shopSettings.notifications
+      ) {
+        try {
+          addNotification({
+            type:
+              "order",
+
+            title:
+              "Nouvelle commande",
+
+            message:
+              `La commande ${order.id} de ${order.customer.firstName} ${order.customer.lastName} vient d'être enregistrée.`,
+
+            orderId:
+              order.id,
+          });
+        } catch (notificationError) {
+          console.error(
+            "⚠️ Impossible d'ajouter la notification :",
+            notificationError
+          );
+        }
+      }
+
+      /* ====================================
+         VIDER LE PANIER
+      ==================================== */
+
+      clearCart();
+
+      /* ====================================
+         REDIRECTION
+      ==================================== */
+
+      navigate(
+        `/order/${savedOrder.id}`,
+        {
+          state: {
+            order: savedOrder,
+          },
+        }
+      );
+    } catch (submitError) {
+      console.error(
+        "❌ Erreur lors de la validation de la commande :",
+        submitError
+      );
+
+      setError(
+        submitError?.message ||
+          "Une erreur est survenue lors de l'enregistrement de la commande. Veuillez réessayer."
+      );
+
+      setProcessing(false);
+    }
   };
 
   /* ========================================
@@ -988,7 +1078,7 @@ function Checkout() {
 
             {/* ==============================
                 TOTAL
-            ============================== */}
+            ================================== */}
 
             <div className="checkout-grand-total">
 
@@ -1007,17 +1097,20 @@ function Checkout() {
 
             {/* ==============================
                 BOUTON
-            ============================== */}
+            ================================== */}
 
             <button
               type="submit"
               className="place-order-button"
               disabled={
-                noPaymentAvailable
+                noPaymentAvailable ||
+                processing
               }
             >
 
-              {noPaymentAvailable
+              {processing
+                ? "Enregistrement..."
+                : noPaymentAvailable
                 ? "Paiement indisponible"
                 : "Confirmer la commande"}
 
@@ -1025,7 +1118,7 @@ function Checkout() {
 
             {/* ==============================
                 RETOUR PANIER
-            ============================== */}
+            ================================== */}
 
             <Link
               to="/cart"
