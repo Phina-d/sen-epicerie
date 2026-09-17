@@ -494,27 +494,90 @@ export async function addOrder(
       salesError
     );
 
-    /*
-      On tente de supprimer la commande
-      afin d'éviter d'avoir une commande
-      sans ses ventes.
-    */
+    /* ---------------------------------------------
+       NETTOYER LES VENTES ÉVENTUELLEMENT CRÉÉES
+    --------------------------------------------- */
 
-    const { error: rollbackError } =
-      await supabase
-        .from(ORDERS_TABLE)
-        .delete()
-        .eq(
-          "id",
-          createdOrder.id
+    try {
+      await deleteSaleByOrderId(
+        createdOrder.id
+      );
+    } catch (cleanupSalesError) {
+      console.error(
+        "⚠️ Impossible de nettoyer les ventes après l'échec :",
+        cleanupSalesError
+      );
+    }
+
+    /* ---------------------------------------------
+       RESTAURER LE STOCK
+       IMPORTANT :
+       Le Checkout a déjà diminué le stock
+       avant d'appeler addOrder().
+    --------------------------------------------- */
+
+    try {
+      const stockResult =
+        await restoreOrderStock(
+          createdOrder
         );
+
+      if (
+        stockResult.failedProducts
+          .length > 0
+      ) {
+        console.error(
+          "❌ Certains stocks n'ont pas pu être restaurés après l'échec de la commande :",
+          stockResult.failedProducts
+        );
+      } else {
+        console.log(
+          "✅ Stock restauré après l'échec de création des ventes."
+        );
+      }
+    } catch (restoreError) {
+      console.error(
+        "❌ Erreur lors de la restauration du stock après l'échec :",
+        restoreError
+      );
+    }
+
+    /* ---------------------------------------------
+       SUPPRIMER LA COMMANDE
+    --------------------------------------------- */
+
+    const {
+      error: rollbackError,
+    } = await supabase
+      .from(ORDERS_TABLE)
+      .delete()
+      .eq(
+        "id",
+        createdOrder.id
+      );
 
     if (rollbackError) {
       console.error(
         "❌ Impossible d'annuler la commande après l'échec des ventes :",
         rollbackError
       );
+    } else {
+      console.log(
+        `↩️ Commande ${createdOrder.id} annulée après l'échec des ventes.`
+      );
     }
+
+    window.dispatchEvent(
+      new Event("ordersUpdated")
+    );
+
+    window.dispatchEvent(
+      new Event("productsUpdated")
+    );
+
+    window.dispatchEvent(
+      new Event("salesUpdated")
+    );
 
     throw salesError;
   }
@@ -708,12 +771,77 @@ export async function updateOrderStatus(
     );
   }
 
-  return await updateOrder(
-    id,
-    {
-      status,
+  /* ---------------------------------------------
+     RÉCUPÉRER LA COMMANDE ACTUELLE
+  --------------------------------------------- */
+
+  const currentOrder =
+    await getOrderById(id);
+
+  if (!currentOrder) {
+    throw new Error(
+      "Commande introuvable."
+    );
+  }
+
+  /* ---------------------------------------------
+     SI LA COMMANDE EST ANNULÉE
+     → RESTAURER LE STOCK AVANT
+       D'ENREGISTRER LE STATUT
+  --------------------------------------------- */
+
+  if (
+    status === "Annulée" &&
+    !currentOrder.stockRestored
+  ) {
+    console.log(
+      `↩️ Annulation de ${id} : restauration du stock...`
+    );
+
+    const stockResult =
+      await restoreOrderStock(
+        currentOrder
+      );
+
+    if (
+      stockResult.failedProducts.length > 0
+    ) {
+      console.error(
+        "❌ Impossible de restaurer complètement le stock.",
+        stockResult.failedProducts
+      );
+
+      throw new Error(
+        "La commande ne peut pas être annulée car certains stocks n'ont pas pu être restaurés."
+      );
     }
+
+    console.log(
+      `✅ Stock restauré avant annulation de ${id}.`
+    );
+  }
+
+  /* ---------------------------------------------
+     ENREGISTRER LE NOUVEAU STATUT
+  --------------------------------------------- */
+
+  const updatedOrder =
+    await updateOrder(
+      id,
+      {
+        status,
+        stockRestored:
+          status === "Annulée"
+            ? true
+            : currentOrder.stockRestored,
+      }
+    );
+
+  console.log(
+    `✅ Statut de ${id} : ${status}`
   );
+
+  return updatedOrder;
 }
 
 /* =========================================================
@@ -730,6 +858,10 @@ export async function restoreOrderStock(
       failedProducts: [],
     };
   }
+
+  /* ---------------------------------------------
+     PROTECTION CONTRE LA DOUBLE RESTAURATION
+  --------------------------------------------- */
 
   if (order.stockRestored) {
     console.log(
@@ -843,6 +975,11 @@ export async function restoreOrderStock(
     }
   }
 
+  /* ---------------------------------------------
+     LE STOCK EST CONSIDÉRÉ RESTAURÉ
+     UNIQUEMENT SI TOUT A RÉUSSI
+  --------------------------------------------- */
+
   const stockRestored =
     failedProducts.length === 0;
 
@@ -852,6 +989,14 @@ export async function restoreOrderStock(
       {
         stockRestored: true,
       }
+    );
+
+    console.log(
+      `🔒 Stock marqué comme restauré pour ${order.id}.`
+    );
+  } else {
+    console.warn(
+      `⚠️ Le stock de ${order.id} n'est pas marqué comme restauré car certaines opérations ont échoué.`
     );
   }
 
@@ -920,6 +1065,18 @@ export async function deleteOrder(
           "⚠️ Certains stocks n'ont pas pu être restaurés.",
           stockResult.failedProducts
         );
+
+        return {
+          success: false,
+          message:
+            "La commande n'a pas été supprimée car certains stocks n'ont pas pu être restaurés.",
+          stockRestored:
+            false,
+          restoredProducts:
+            stockResult.restoredProducts,
+          failedProducts:
+            stockResult.failedProducts,
+        };
       }
     }
 
@@ -1066,6 +1223,35 @@ export async function deleteOrders(
     }
 
     /* ---------------------------------------------
+       NE PAS SUPPRIMER SI UN STOCK
+       N'A PAS PU ÊTRE RESTAURÉ
+    --------------------------------------------- */
+
+    if (
+      failedProducts.length > 0
+    ) {
+      console.error(
+        "❌ Suppression multiple interrompue : certains stocks n'ont pas pu être restaurés.",
+        failedProducts
+      );
+
+      return {
+        success: false,
+
+        message:
+          "Les commandes n'ont pas été supprimées car certains stocks n'ont pas pu être restaurés.",
+
+        deletedCount: 0,
+
+        deletedIds: [],
+
+        restoredProducts,
+
+        failedProducts,
+      };
+    }
+
+    /* ---------------------------------------------
        SUPPRIMER LES VENTES
     --------------------------------------------- */
 
@@ -1194,13 +1380,21 @@ export async function cleanOrphanSales(
 
   for (const sale of orphanSales) {
     try {
-      await supabase
-        .from(SALES_TABLE)
-        .delete()
-        .eq(
-          "id",
-          sale.id
+      const { error } =
+        await supabase
+          .from(SALES_TABLE)
+          .delete()
+          .eq(
+            "id",
+            sale.id
+          );
+
+      if (error) {
+        console.error(
+          "❌ Erreur lors de la suppression d'une vente orpheline :",
+          error
         );
+      }
     } catch (error) {
       console.error(
         "❌ Erreur lors du nettoyage d'une vente orpheline :",
@@ -1234,12 +1428,49 @@ export async function clearOrders() {
        RESTAURATION DES STOCKS
     --------------------------------------------- */
 
+    const failedProducts = [];
+    const restoredProducts = [];
+
     for (const order of orders) {
       if (!order.stockRestored) {
-        await restoreOrderStock(
-          order
+        const stockResult =
+          await restoreOrderStock(
+            order
+          );
+
+        restoredProducts.push(
+          ...stockResult.restoredProducts
+        );
+
+        failedProducts.push(
+          ...stockResult.failedProducts
         );
       }
+    }
+
+    /* ---------------------------------------------
+       NE PAS SUPPRIMER LES COMMANDES
+       SI LE STOCK N'EST PAS CORRECTEMENT RESTAURÉ
+    --------------------------------------------- */
+
+    if (
+      failedProducts.length > 0
+    ) {
+      console.error(
+        "❌ Suppression globale interrompue : certains stocks n'ont pas pu être restaurés.",
+        failedProducts
+      );
+
+      return {
+        success: false,
+
+        message:
+          "Les commandes n'ont pas été supprimées car certains stocks n'ont pas pu être restaurés.",
+
+        restoredProducts,
+
+        failedProducts,
+      };
     }
 
     /* ---------------------------------------------
@@ -1308,6 +1539,10 @@ export async function clearOrders() {
 
       message:
         "Toutes les commandes ont été supprimées.",
+
+      restoredProducts,
+
+      failedProducts: [],
     };
   } catch (error) {
     console.error(

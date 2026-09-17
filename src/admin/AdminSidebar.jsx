@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 
 import {
   getUnreadNotificationsCount,
 } from "../utils/notificationsManager";
 
+import { useAuth } from "../context/AuthContext";
+
 import "../styles/AdminSidebar.css";
 
 function AdminSidebar() {
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const { user, signOut } = useAuth();
+
+  const navigate = useNavigate();
 
   const loadNotifications = () => {
     setUnreadCount(
@@ -31,6 +37,21 @@ function AdminSidebar() {
       );
     };
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+
+      navigate("/admin/login", {
+        replace: true,
+      });
+    } catch (error) {
+      console.error(
+        "❌ Erreur lors de la déconnexion :",
+        error
+      );
+    }
+  };
 
   return (
     <aside className="admin-sidebar">
@@ -195,6 +216,32 @@ function AdminSidebar() {
 
       <div className="admin-sidebar-bottom">
 
+        {/* UTILISATEUR CONNECTÉ */}
+
+        {user && (
+          <div className="admin-sidebar-user">
+
+            <div className="admin-sidebar-user-icon">
+              👤
+            </div>
+
+            <div className="admin-sidebar-user-info">
+
+              <strong>
+                Administrateur
+              </strong>
+
+              <span>
+                {user.email}
+              </span>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* VOIR LA BOUTIQUE */}
+
         <Link
           to="/"
           className="admin-sidebar-shop-link"
@@ -202,6 +249,16 @@ function AdminSidebar() {
           <span>🏪</span>
           Voir la boutique
         </Link>
+
+        {/* DÉCONNEXION */}
+
+         <button
+    type="button"
+    className="admin-logout-button"
+    onClick={handleLogout}
+  >
+    🚪 Déconnexion
+  </button>
 
       </div>
 

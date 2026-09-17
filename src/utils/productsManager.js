@@ -106,6 +106,10 @@ function normalizeProduct(product) {
     return null;
   }
 
+  // ======================================
+  // PRIX DE BASE
+  // ======================================
+
   let price = Number(product.price);
 
   if (!Number.isFinite(price) || price < 0) {
@@ -117,34 +121,26 @@ function normalizeProduct(product) {
   let promoPercent = 0;
 
   // ======================================
-  // ANCIEN SYSTÈME
-  // onSale / salePrice / discount
-  // ======================================
-
-  const hasOldPromotion =
-    product.onSale === true &&
-    Number(product.salePrice) > 0 &&
-    Number(product.salePrice) < Number(product.price);
-
-  if (hasOldPromotion) {
-    oldPrice = price;
-
-    price = Number(product.salePrice);
-
-    promo = true;
-
-    promoPercent = Math.round(
-      ((oldPrice - price) / oldPrice) * 100
-    );
-  }
-
-  // ======================================
   // NOUVEAU SYSTÈME
   // promo / oldPrice / promoPercent
   // ======================================
+  //
+  // IMPORTANT :
+  // Le nouveau système est prioritaire.
+  // Il ne faut surtout pas reprendre
+  // salePrice de l'ancien système si
+  // celui-ci existe encore dans le produit.
+  //
+  // ======================================
 
-  else {
-    const possibleOldPrice = Number(product.oldPrice);
+  const hasNewPromotionData =
+    product.promo !== undefined ||
+    product.oldPrice !== undefined ||
+    product.promoPercent !== undefined;
+
+  if (hasNewPromotionData) {
+    const possibleOldPrice =
+      Number(product.oldPrice);
 
     const validOldPrice =
       Number.isFinite(possibleOldPrice) &&
@@ -157,9 +153,23 @@ function normalizeProduct(product) {
     if (promo) {
       oldPrice = possibleOldPrice;
 
-      promoPercent = Math.round(
-        ((oldPrice - price) / oldPrice) * 100
-      );
+      const possiblePercent =
+        Number(product.promoPercent);
+
+      if (
+        Number.isFinite(possiblePercent) &&
+        possiblePercent >= 0
+      ) {
+        promoPercent =
+          Math.round(possiblePercent);
+      } else {
+        promoPercent =
+          Math.round(
+            ((oldPrice - price) /
+              oldPrice) *
+              100
+          );
+      }
     } else {
       oldPrice = null;
       promo = false;
@@ -168,10 +178,48 @@ function normalizeProduct(product) {
   }
 
   // ======================================
+  // ANCIEN SYSTÈME
+  // onSale / salePrice / discount
+  // ======================================
+  //
+  // Utilisé uniquement pour les anciens
+  // produits qui n'ont pas encore les
+  // propriétés du nouveau système.
+  //
+  // ======================================
+
+  else {
+    const oldSalePrice =
+      Number(product.salePrice);
+
+    const hasOldPromotion =
+      product.onSale === true &&
+      Number.isFinite(oldSalePrice) &&
+      oldSalePrice > 0 &&
+      oldSalePrice < price;
+
+    if (hasOldPromotion) {
+      oldPrice = price;
+
+      price = oldSalePrice;
+
+      promo = true;
+
+      promoPercent =
+        Math.round(
+          ((oldPrice - price) /
+            oldPrice) *
+            100
+        );
+    }
+  }
+
+  // ======================================
   // STOCK
   // ======================================
 
-  const stockNumber = Number(product.stock);
+  const stockNumber =
+    Number(product.stock);
 
   const stock =
     Number.isFinite(stockNumber) &&
@@ -196,12 +244,18 @@ function normalizeProduct(product) {
         : "",
 
     category:
-      product.category || "Autres",
+      product.category ||
+      "Autres",
 
     description:
-      typeof product.description === "string"
+      typeof product.description ===
+      "string"
         ? product.description
         : "",
+
+    // ====================================
+    // PRIX CANONIQUE
+    // ====================================
 
     price,
 
@@ -211,13 +265,27 @@ function normalizeProduct(product) {
 
     promoPercent,
 
+    // ====================================
+    // STOCK
+    // ====================================
+
     stock,
 
     unit:
-      product.unit || "unité",
+      product.unit ||
+      "unité",
+
+    // ====================================
+    // IMAGE
+    // ====================================
 
     image:
-      product.image || "",
+      product.image ||
+      "",
+
+    // ====================================
+    // STATUT
+    // ====================================
 
     active:
       product.active !== false,
@@ -226,18 +294,21 @@ function normalizeProduct(product) {
       product.featured === true,
 
     // ====================================
-    // ANCIENNES PROPRIÉTÉS
+    // COMPATIBILITÉ ANCIEN SYSTÈME
     // ====================================
 
-    onSale: promo,
+    onSale:
+      promo,
 
-    salePrice: promo
-      ? price
-      : null,
+    salePrice:
+      promo
+        ? price
+        : null,
 
-    discount: promo
-      ? promoPercent
-      : 0,
+    discount:
+      promo
+        ? promoPercent
+        : 0,
   };
 }
 
@@ -622,101 +693,197 @@ export async function addProduct(product) {
 // MODIFIER UN PRODUIT
 // ========================================
 
-export async function updateProduct(
-  id,
-  updates
-) {
-  const products = getProducts();
-
-  const existingProduct =
-    products.find(
-      (product) =>
-        String(product.id) ===
-        String(id)
-    );
-
-  if (!existingProduct) {
-    return null;
-  }
-
-  const updatedProduct =
-    normalizeProduct({
-      ...existingProduct,
-      ...updates,
-    });
-
-  // ======================================
-  // CACHE LOCAL
-  // ======================================
-
-  const updatedProducts =
-    products.map((product) =>
-      String(product.id) ===
-      String(id)
-        ? updatedProduct
-        : product
-    );
-
-  saveLocalCache(updatedProducts);
-
-  window.dispatchEvent(
-    new Event("productsUpdated")
-  );
-
-  // ======================================
-  // SUPABASE
-  // ======================================
-
-  const supabaseProduct =
-    toSupabaseProduct(updatedProduct);
-
+export async function updateProduct(id, updates) {
   try {
-    const { data, error } = await supabase
-      .from("products")
-      .update(supabaseProduct)
-      .eq("id", id)
-      .select()
-      .single();
+    // ======================================
+    // 1. VÉRIFIER L'ID
+    // ======================================
 
-    if (error) {
-      console.error(
-        "❌ Erreur Supabase lors de la modification :",
-        error
-      );
-
-      throw error;
+    if (!id) {
+      throw new Error("Identifiant du produit manquant.");
     }
 
-    const savedProduct =
-      fromSupabaseProduct(data);
+    // ======================================
+    // 2. RÉCUPÉRER LE PRODUIT DIRECTEMENT
+    //    DEPUIS SUPABASE
+    // ======================================
 
-    if (savedProduct) {
-      const finalProducts =
-        getProducts().map((product) =>
+    const {
+      data: existingRow,
+      error: fetchError,
+    } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", String(id))
+      .single();
+
+    if (fetchError) {
+      console.error(
+        "❌ Erreur lors de la récupération du produit avant modification :",
+        fetchError
+      );
+
+      throw fetchError;
+    }
+
+    if (!existingRow) {
+      throw new Error("Produit introuvable dans Supabase.");
+    }
+
+    // ======================================
+    // 3. CONVERTIR SUPABASE → PRODUIT REACT
+    // ======================================
+
+    const existingProduct =
+      fromSupabaseProduct(existingRow);
+
+    if (!existingProduct) {
+      throw new Error(
+        "Impossible de convertir le produit existant."
+      );
+    }
+
+    // ======================================
+    // 4. CONSTRUIRE LE NOUVEAU PRODUIT
+    //    À PARTIR DE SUPABASE
+    // ======================================
+
+    const updatedProduct =
+      normalizeProduct({
+        ...existingProduct,
+        ...updates,
+        id: existingProduct.id,
+      });
+
+    if (!updatedProduct) {
+      throw new Error(
+        "Les données du produit sont invalides."
+      );
+    }
+
+    // ======================================
+    // 5. CONVERTIR → SUPABASE
+    // ======================================
+
+    const supabaseProduct =
+      toSupabaseProduct(updatedProduct);
+
+    if (!supabaseProduct) {
+      throw new Error(
+        "Impossible de préparer le produit pour Supabase."
+      );
+    }
+
+    console.log(
+      "📤 Mise à jour Supabase :",
+      supabaseProduct
+    );
+
+    // ======================================
+    // 6. MODIFIER SUPABASE
+    // ======================================
+
+    const {
+      data: savedRow,
+      error: updateError,
+    } = await supabase
+      .from("products")
+      .update(supabaseProduct)
+      .eq("id", String(id))
+      .select("*")
+      .single();
+
+    if (updateError) {
+      console.error(
+        "❌ ERREUR SUPABASE UPDATE :",
+        updateError
+      );
+
+      throw updateError;
+    }
+
+    if (!savedRow) {
+      throw new Error(
+        "Supabase n'a retourné aucun produit après la modification."
+      );
+    }
+
+    console.log(
+      "✅ Produit réellement enregistré dans Supabase :",
+      savedRow
+    );
+
+    // ======================================
+    // 7. CONVERTIR LE PRODUIT RETOURNÉ
+    //    PAR SUPABASE
+    // ======================================
+
+    const savedProduct =
+      fromSupabaseProduct(savedRow);
+
+    if (!savedProduct) {
+      throw new Error(
+        "Impossible de convertir le produit sauvegardé."
+      );
+    }
+
+    // ======================================
+    // 8. METTRE À JOUR LE CACHE LOCAL
+    //    AVEC LA VERSION SUPABASE
+    // ======================================
+
+    const cachedProducts =
+      getProducts();
+
+    const productAlreadyExists =
+      cachedProducts.some(
+        (product) =>
           String(product.id) ===
-          String(id)
+          String(savedProduct.id)
+      );
+
+    let finalProducts;
+
+    if (productAlreadyExists) {
+      finalProducts =
+        cachedProducts.map((product) =>
+          String(product.id) ===
+          String(savedProduct.id)
             ? savedProduct
             : product
         );
-
-      saveLocalCache(finalProducts);
-
-      window.dispatchEvent(
-        new Event("productsUpdated")
-      );
-
-      return savedProduct;
+    } else {
+      finalProducts = [
+        ...cachedProducts,
+        savedProduct,
+      ];
     }
+
+    saveLocalCache(finalProducts);
+
+    // ======================================
+    // 9. INFORMER L'APPLICATION
+    // ======================================
+
+    window.dispatchEvent(
+      new Event("productsUpdated")
+    );
+
+    console.log(
+      "💾 Cache local synchronisé :",
+      savedProduct
+    );
+
+    return savedProduct;
+
   } catch (error) {
     console.error(
-      "❌ Le produit a été modifié localement mais n'a pas pu être synchronisé avec Supabase.",
+      "❌ Erreur lors de la modification du produit :",
       error
     );
 
     throw error;
   }
-
-  return updatedProduct;
 }
 
 // ========================================
@@ -915,24 +1082,12 @@ export async function decreaseStock(
   id,
   quantity
 ) {
-  const products = getProducts();
-
-  const product = products.find(
-    (item) =>
-      String(item.id) ===
-      String(id)
-  );
-
-  if (!product) {
-    return {
-      success: false,
-      message:
-        "Produit introuvable.",
-    };
-  }
-
   const requestedQuantity =
     Number(quantity);
+
+  // ======================================
+  // VALIDATION
+  // ======================================
 
   if (
     !Number.isFinite(
@@ -947,41 +1102,19 @@ export async function decreaseStock(
     };
   }
 
-  const currentStock =
-    Number(product.stock) || 0;
-
-  if (
-    currentStock <
-    requestedQuantity
-  ) {
-    return {
-      success: false,
-      message:
-        `Stock insuffisant pour ${product.name}. Stock disponible : ${currentStock}.`,
-    };
-  }
-
-  const previousStock =
-    currentStock;
-
-  const newStock =
-    previousStock -
-    requestedQuantity;
-
   // ======================================
-  // SUPABASE
+  // SUPABASE RPC
   // ======================================
 
   try {
-    const { data, error } = await supabase
-      .from("products")
-      .update({
-        stock: newStock,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .select()
-      .single();
+    const { data, error } =
+      await supabase.rpc(
+        "decrease_product_stock",
+        {
+          p_product_id: String(id),
+          p_quantity: requestedQuantity,
+        }
+      );
 
     if (error) {
       console.error(
@@ -997,8 +1130,48 @@ export async function decreaseStock(
       };
     }
 
+    // ====================================
+    // RÉSULTAT DE LA FONCTION SQL
+    // ====================================
+
+    if (!data?.success) {
+      return {
+        success: false,
+        message:
+          data?.message ||
+          "Impossible de diminuer le stock.",
+      };
+    }
+
+    // ====================================
+    // RÉCUPÉRER LE PRODUIT À JOUR
+    // ====================================
+
+    const {
+      data: productData,
+      error: productError,
+    } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (productError) {
+      console.error(
+        "❌ Erreur lors de la récupération du produit mis à jour :",
+        productError
+      );
+
+      return {
+        success: false,
+        message:
+          "Le stock a été modifié mais le produit n'a pas pu être récupéré.",
+        error: productError,
+      };
+    }
+
     const updatedProduct =
-      fromSupabaseProduct(data);
+      fromSupabaseProduct(productData);
 
     if (!updatedProduct) {
       return {
@@ -1011,6 +1184,8 @@ export async function decreaseStock(
     // ====================================
     // CACHE LOCAL
     // ====================================
+
+    const products = getProducts();
 
     const updatedProducts =
       products.map((item) =>
@@ -1050,8 +1225,8 @@ export async function decreaseStock(
     // ====================================
 
     else if (
-      previousStock > 10 &&
-      updatedProduct.stock <= 10
+      updatedProduct.stock <= 10 &&
+      data.previous_stock > 10
     ) {
       addNotification({
         type: "warning",
@@ -1071,6 +1246,7 @@ export async function decreaseStock(
       success: true,
       product: updatedProduct,
     };
+
   } catch (error) {
     console.error(
       "❌ Erreur inattendue lors de la diminution du stock :",

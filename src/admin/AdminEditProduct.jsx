@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import {
-  getProductById,
+  loadProductsFromSupabase,
   updateProduct,
 } from "../utils/productsManager";
 
@@ -48,7 +48,15 @@ function AdminEditProduct() {
 
     const loadProduct = async () => {
       try {
-        const product = await getProductById(id);
+       const products =
+  await loadProductsFromSupabase();
+
+const product =
+  products.find(
+    (item) =>
+      String(item.id) ===
+      String(id)
+  );
 
         if (!isMounted) {
           return;

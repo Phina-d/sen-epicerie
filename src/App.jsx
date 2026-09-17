@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -18,6 +24,7 @@ import MyOrders from "./pages/MyOrders";
 import OrderTracking from "./pages/OrderTracking";
 import Terms from "./pages/Terms";
 import Promotions from "./pages/Promotions";
+import AdminLogin from "./pages/AdminLogin";
 
 import ScrollToTopButton from "./components/ScrollToTopButton";
 
@@ -34,27 +41,67 @@ import AdminSettings from "./admin/AdminSettings";
 import AdminStatistics from "./admin/AdminStatistics";
 import AdminNotifications from "./admin/AdminNotifications";
 
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
-function App() {
 
-  /*
-    Vite connaît automatiquement la base de l'application.
+/* =========================================
+   ROUTE ADMIN PROTÉGÉE
+========================================= */
 
-    En développement :
-    / ou éventuellement /sen-epicerie/
+function AdminRoute({ children }) {
+  const {
+    user,
+    loading,
+  } = useAuth();
 
-    Sur GitHub Pages :
-    /sen-epicerie/
-  */
-  const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
+  if (loading) {
+    return (
+      <main className="admin-login-page">
+        <div className="admin-login-loading">
+          Vérification de la session...
+        </div>
+      </main>
+    );
+  }
 
+  if (!user) {
+    return (
+      <Navigate
+        to="/admin/login"
+        replace
+      />
+    );
+  }
+
+  return children;
+}
+
+
+/* =========================================
+   CONTENU PRINCIPAL DE L'APPLICATION
+========================================= */
+
+function AppContent() {
+  const location = useLocation();
+
+  const isAdminLogin =
+    location.pathname === "/admin/login";
 
   return (
-    <BrowserRouter basename={basename}>
-
-      <Navbar />
+    <>
+      {!isAdminLogin && <Navbar />}
 
       <Routes>
+
+        {/* ================================
+            CONNEXION ADMIN
+        ================================= */}
+
+        <Route
+          path="/admin/login"
+          element={<AdminLogin />}
+        />
+
 
         {/* ================================
             BOUTIQUE
@@ -137,12 +184,16 @@ function App() {
 
 
         {/* ================================
-            ADMINISTRATION
+            ADMINISTRATION PROTÉGÉE
         ================================= */}
 
         <Route
           path="/admin"
-          element={<AdminLayout />}
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
         >
 
           <Route
@@ -206,9 +257,42 @@ function App() {
 
       <ScrollToTopButton />
 
-      <Footer />
+      {!isAdminLogin && <Footer />}
+    </>
+  );
+}
 
-    </BrowserRouter>
+
+/* =========================================
+   APPLICATION
+========================================= */
+
+function App() {
+
+  /*
+    Vite connaît automatiquement la base
+    de l'application.
+
+    En développement :
+    /
+
+    Sur GitHub Pages :
+    /sen-epicerie/
+  */
+
+  const basename =
+    import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  return (
+    <AuthProvider>
+
+      <BrowserRouter basename={basename}>
+
+        <AppContent />
+
+      </BrowserRouter>
+
+    </AuthProvider>
   );
 }
 

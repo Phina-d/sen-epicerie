@@ -5,8 +5,6 @@
 .admin-sidebar {
   width: 250px;
 
-  min-height: 100vh;
-
   position: sticky;
   top: 0;
 
@@ -14,10 +12,13 @@
   flex-direction: column;
 
   background: #123c2a;
-
   color: white;
 
   flex-shrink: 0;
+
+  align-self: flex-start;
+
+  box-sizing: border-box;
 }
 
 /* ========================================
@@ -135,13 +136,16 @@
 /* ========================================
    BAS
 ======================================== */
-
 .admin-sidebar-bottom {
-  margin-top: auto;
+  width: 100%;
+  box-sizing: border-box;
 
+  margin-top: 25px;
   padding: 18px 12px;
 
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  overflow: hidden;
 }
 
 .admin-sidebar-shop-link {
@@ -172,14 +176,6 @@
    RESPONSIVE
 ======================================== */
 
-@media (max-width: 800px) {
-
-  .admin-sidebar {
-    width: 210px;
-  }
-
-}
-
 @media (max-width: 650px) {
 
   .admin-sidebar {
@@ -188,7 +184,6 @@
 
   .admin-sidebar-logo {
     justify-content: center;
-
     padding: 18px 10px;
   }
 
@@ -207,7 +202,6 @@
 
   .admin-sidebar-link {
     justify-content: center;
-
     padding: 13px;
   }
 
@@ -221,10 +215,13 @@
 
   .admin-sidebar-shop-link {
     justify-content: center;
-
     font-size: 0;
   }
 
+  /* Cacher les informations administrateur sur mobile */
+  .admin-sidebar-user {
+    display: none;
+  }
 }
 
 /* ========================================
@@ -254,4 +251,150 @@
   font-weight: 700;
 
   line-height: 1;
+}
+
+/* =========================================
+   INFORMATIONS ADMINISTRATEUR
+========================================= */
+
+.admin-sidebar-user {
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  padding: 4px 6px 10px;
+
+  overflow: hidden;
+}
+
+.admin-sidebar-user strong {
+  display: block;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  line-height: 1.3;
+
+  white-space: nowrap;
+}
+
+.admin-sidebar-user span {
+  display: block;
+
+  max-width: 100%;
+
+  color: rgba(255, 255, 255, 0.65);
+
+  font-size: 11px;
+  font-weight: 400;
+
+  line-height: 1.4;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* =========================================
+   BOUTON DÉCONNEXION
+========================================= */
+
+.admin-sidebar-bottom .admin-logout-button {
+  width: 100%;
+  min-height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  margin-top: 12px;
+  padding: 11px 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+
+  line-height: 1;
+  text-align: center;
+
+  cursor: pointer;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+/* SURVOL */
+.admin-sidebar-bottom .admin-logout-button:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.28);
+}
+
+
+/* CLIC */
+.admin-sidebar-bottom .admin-logout-button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+
+/* FOCUS CLAVIER */
+.admin-sidebar-bottom .admin-logout-button:focus {
+  outline: none;
+}
+
+
+.admin-sidebar-bottom .admin-logout-button:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 2px;
+}
+
+
+/* =========================================
+   SIDEBAR MOBILE
+========================================= */
+
+@media (max-width: 650px) {
+
+  .admin-sidebar-bottom .admin-logout-button {
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+
+    margin: 12px auto 0;
+    padding: 0;
+
+    border-radius: 9px;
+
+    font-size: 0;
+  }
+
+  .admin-sidebar-bottom .admin-logout-button::first-letter {
+    font-size: 18px;
+  }
+
 }

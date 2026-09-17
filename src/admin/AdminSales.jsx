@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 
 import {
   getSales,
-  getOrders,
-} from "../utils/ordersManager";
+} from "../utils/salesManager";
 
 import "../styles/AdminSales.css";
 
@@ -39,73 +38,107 @@ function formatDate(date) {
 }
 
 /* =========================================================
-   ENRICHIR LES VENTES AVEC LES INFORMATIONS DE LA COMMANDE
+   NORMALISER UNE VENTE / COMMANDE
 ========================================================= */
 
-function enrichSales(sales, orders) {
-  if (!Array.isArray(sales)) {
-    return [];
+function normalizeSale(sale) {
+  if (!sale) {
+    return null;
   }
 
-  const ordersMap = new Map(
-    Array.isArray(orders)
-      ? orders.map((order) => [
-          order.id,
-          order,
-        ])
-      : []
+  const items =
+    Array.isArray(sale.items)
+      ? sale.items
+      : [];
+
+  const normalizedItems = items.map(
+    (item) => ({
+      ...item,
+
+      id:
+        item.id ||
+        item.productId ||
+        item.product_id ||
+        "",
+
+      name:
+        item.name ||
+        item.productName ||
+        item.product_name ||
+        "Produit",
+
+      price:
+        Number(
+          item.price ??
+            item.unitPrice ??
+            item.unit_price ??
+            0
+        ) || 0,
+
+      quantity:
+        Number(item.quantity || 0),
+    })
   );
 
-  return sales.map((sale) => {
-    const order =
-      ordersMap.get(sale.orderId) || null;
+  const totalProducts = normalizedItems.reduce(
+    (total, item) =>
+      total +
+      Number(item.quantity || 0),
+    0
+  );
 
-    return {
-      ...sale,
+  return {
+    ...sale,
 
-      order: order,
+    id:
+      sale.id ||
+      sale.orderId ||
+      "",
 
-      customer:
-        order?.customer || {},
+    orderId:
+      sale.orderId ||
+      sale.id ||
+      "",
 
-      payment:
-        order?.payment ||
-        "À la livraison",
+    customer:
+      sale.customer &&
+      typeof sale.customer === "object"
+        ? sale.customer
+        : {},
 
-      status:
-        order?.status ||
-        "Enregistrée",
+    items: normalizedItems,
 
-      subtotal:
-        Number(order?.subtotal || 0),
+    totalProducts,
 
-      shipping:
-        Number(order?.shipping || 0),
+    subtotal:
+      Number(sale.subtotal || 0),
 
-      orderTotal:
-        Number(order?.total || 0),
+    shipping:
+      Number(sale.shipping || 0),
 
-      items:
-        Array.isArray(order?.items)
-          ? order.items
-          : [
-              {
-                id: sale.productId,
-                name:
-                  sale.productName ||
-                  "Produit",
-                price:
-                  Number(
-                    sale.unitPrice || 0
-                  ),
-                quantity:
-                  Number(
-                    sale.quantity || 0
-                  ),
-              },
-            ],
-    };
-  });
+    total:
+      Number(sale.total || 0),
+
+    orderTotal:
+      Number(
+        sale.total ||
+          sale.orderTotal ||
+          0
+      ),
+
+    payment:
+      sale.payment ||
+      "À la livraison",
+
+    status:
+      sale.status ||
+      "Enregistrée",
+
+    date:
+      sale.date ||
+      sale.created_at ||
+      new Date().toISOString(),
+  };
 }
 
 /* =========================================================
@@ -145,24 +178,22 @@ function AdminSales() {
     try {
       setLoading(true);
 
-      const [
-        salesFromSupabase,
-        ordersFromSupabase,
-      ] = await Promise.all([
-        getSales(),
-        getOrders(),
-      ]);
+      const salesFromSupabase =
+        await getSales();
 
-      const enrichedSales =
-        enrichSales(
-          salesFromSupabase,
-          ordersFromSupabase
-        );
+      const normalizedSales =
+        Array.isArray(
+          salesFromSupabase
+        )
+          ? salesFromSupabase
+              .map(normalizeSale)
+              .filter(Boolean)
+          : [];
 
-      setSales(enrichedSales);
+      setSales(normalizedSales);
 
       console.log(
-        `✅ ${enrichedSales.length} vente(s) affichée(s) dans AdminSales`
+        `✅ ${normalizedSales.length} vente(s) affichée(s) dans AdminSales`
       );
     } catch (error) {
       console.error(
@@ -218,20 +249,26 @@ function AdminSales() {
      STATISTIQUES GÉNÉRALES
   ======================================== */
 
-  const totalRevenue = sales.reduce(
-    (total, sale) =>
-      total +
-      Number(sale.total || 0),
-    0
-  );
-
-  const totalProductsSold =
-    sales.reduce(
+  const totalRevenue = useMemo(() => {
+    return sales.reduce(
       (total, sale) =>
         total +
-        Number(sale.quantity || 0),
+        Number(sale.total || 0),
       0
     );
+  }, [sales]);
+
+  const totalProductsSold =
+    useMemo(() => {
+      return sales.reduce(
+        (total, sale) =>
+          total +
+          Number(
+            sale.totalProducts || 0
+          ),
+        0
+      );
+    }, [sales]);
 
   /* ========================================
      STATISTIQUES DU JOUR
@@ -279,7 +316,7 @@ function AdminSales() {
         (total, sale) =>
           total +
           Number(
-            sale.quantity || 0
+            sale.totalProducts || 0
           ),
         0
       );
@@ -336,14 +373,24 @@ function AdminSales() {
       const customerPhone =
         sale.customer?.phone || "";
 
+      const searchableProducts =
+        Array.isArray(sale.items)
+          ? sale.items
+              .map(
+                (item) =>
+                  item.name || ""
+              )
+              .join(" ")
+          : "";
+
       const searchableText = [
         sale.id,
         sale.orderId,
-        sale.productName,
         customerName,
         customerPhone,
         sale.payment,
         sale.status,
+        searchableProducts,
       ]
         .filter(Boolean)
         .join(" ")
@@ -362,7 +409,7 @@ function AdminSales() {
       }
 
       /* -----------------------------------
-         PÉRIODE
+         DATE
       ----------------------------------- */
 
       const saleDate =
@@ -376,6 +423,10 @@ function AdminSales() {
         return false;
       }
 
+      /* -----------------------------------
+         PÉRIODE
+      ----------------------------------- */
+
       if (period === "today") {
         const todayStart =
           new Date(now);
@@ -387,7 +438,10 @@ function AdminSales() {
           0
         );
 
-        if (saleDate < todayStart) {
+        if (
+          saleDate <
+          todayStart
+        ) {
           return false;
         }
       }
@@ -975,7 +1029,7 @@ function AdminSales() {
                       <th>Vente</th>
                       <th>Commande</th>
                       <th>Client</th>
-                      <th>Produit</th>
+                      <th>Produits</th>
                       <th>Qté</th>
                       <th>Paiement</th>
                       <th>Total</th>
@@ -990,6 +1044,16 @@ function AdminSales() {
 
                     {filteredSales.map(
                       (sale) => {
+
+                        const firstProduct =
+                          sale.items?.[0];
+
+                        const productCount =
+                          Array.isArray(
+                            sale.items
+                          )
+                            ? sale.items.length
+                            : 0;
 
                         return (
                           <tr
@@ -1044,15 +1108,31 @@ function AdminSales() {
                             <td>
 
                               <strong>
-                                {sale.productName ||
+                                {firstProduct?.name ||
                                   "Produit"}
+
+                                {productCount >
+                                  1 && (
+                                  <span>
+                                    {" "}
+                                    +{" "}
+                                    {productCount -
+                                      1}{" "}
+                                    autre
+                                    {productCount -
+                                      1 >
+                                    1
+                                      ? "s"
+                                      : ""}
+                                  </span>
+                                )}
                               </strong>
 
                             </td>
 
                             <td>
                               {Number(
-                                sale.quantity ||
+                                sale.totalProducts ||
                                   0
                               )}
                             </td>
@@ -1380,7 +1460,7 @@ function AdminSales() {
 
             </div>
 
-            {/* PRODUIT */}
+            {/* PRODUITS */}
 
             <div className="admin-sale-modal-section">
 
@@ -1391,46 +1471,112 @@ function AdminSales() {
                 </span>
 
                 <h3>
-                  Produit vendu
+                  Produits vendus
                 </h3>
 
               </div>
 
               <div className="admin-sale-products">
 
-                <div className="admin-sale-product">
+                {Array.isArray(
+                  selectedSale.items
+                ) &&
+                selectedSale.items.length >
+                  0 ? (
 
-                  <div className="admin-sale-product-info">
+                  selectedSale.items.map(
+                    (item, index) => {
 
-                    <strong>
-                      {
-                        selectedSale
-                          .productName ||
-                        "Produit"
-                      }
-                    </strong>
+                      const quantity =
+                        Number(
+                          item.quantity ||
+                            0
+                        );
+
+                      const unitPrice =
+                        Number(
+                          item.price ||
+                            item.unitPrice ||
+                            item.unit_price ||
+                            0
+                        );
+
+                      const itemTotal =
+                        unitPrice *
+                        quantity;
+
+                      return (
+                        <div
+                          className="admin-sale-product"
+                          key={
+                            item.id ||
+                            `${selectedSale.id}-${index}`
+                          }
+                        >
+
+                          <div className="admin-sale-product-info">
+
+                            <strong>
+                              {item.name ||
+                                "Produit"}
+                            </strong>
+
+                            <small>
+                              {formatPrice(
+                                unitPrice
+                              )}{" "}
+                              / unité
+                            </small>
+
+                          </div>
+
+                          <div className="admin-sale-product-quantity">
+
+                            ×
+                            {quantity}
+
+                          </div>
+
+                          <div className="admin-sale-product-price">
+
+                            {formatPrice(
+                              itemTotal
+                            )}
+
+                          </div>
+
+                        </div>
+                      );
+                    }
+                  )
+
+                ) : (
+
+                  <div className="admin-sale-product">
+
+                    <div className="admin-sale-product-info">
+
+                      <strong>
+                        Produit
+                      </strong>
+
+                    </div>
+
+                    <div className="admin-sale-product-quantity">
+
+                      ×0
+
+                    </div>
+
+                    <div className="admin-sale-product-price">
+
+                      {formatPrice(0)}
+
+                    </div>
 
                   </div>
 
-                  <div className="admin-sale-product-quantity">
-
-                    ×
-                    {Number(
-                      selectedSale.quantity ||
-                        0
-                    )}
-
-                  </div>
-
-                  <div className="admin-sale-product-price">
-
-                    {formatPrice(
-                      selectedSale.total
-                    )}
-
-                  </div>
-
-                </div>
+                )}
 
               </div>
 

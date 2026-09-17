@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import {
-  getProducts,
+  loadProductsFromSupabase,
   deleteProduct,
 } from "../utils/productsManager";
 
@@ -26,12 +26,13 @@ function AdminProducts() {
   const [category, setCategory] = useState("Toutes");
 
   // ========================================
-  // CHARGER LES PRODUITS
+  // CHARGER LES PRODUITS DEPUIS SUPABASE
   // ========================================
 
   const loadProducts = async () => {
     try {
-      const currentProducts = await getProducts();
+      const currentProducts =
+        await loadProductsFromSupabase();
 
       setProducts(
         Array.isArray(currentProducts)
@@ -95,7 +96,9 @@ function AdminProducts() {
         search.toLowerCase().trim();
 
       const productName =
-        String(product.name || "").toLowerCase();
+        String(
+          product.name || ""
+        ).toLowerCase();
 
       const productCategory =
         String(

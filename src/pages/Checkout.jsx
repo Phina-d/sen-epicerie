@@ -3,14 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { useCart } from "../context/CartContext";
 
-import { addOrder } from "../utils/ordersManager";
-
-import {
-  getProductById,
-  decreaseStock,
-} from "../utils/productsManager";
-
-import { addSale } from "../utils/salesManager";
+import { supabase } from "../utils/supabaseClient";
 
 import { addNotification } from "../utils/notificationsManager";
 
@@ -29,12 +22,14 @@ const shippingFees = {
   SaintLouis: 7000,
 };
 
+
 /* ========================================
    PARAMÈTRES DE LA BOUTIQUE
 ======================================== */
 
 const SETTINGS_STORAGE_KEY =
   "senepicerie_settings";
+
 
 function getShopSettings() {
   const defaultSettings = {
@@ -81,6 +76,7 @@ function getShopSettings() {
   }
 }
 
+
 /* ========================================
    FORMATAGE PRIX
 ======================================== */
@@ -94,6 +90,7 @@ function formatPrice(
   )} ${currency}`;
 }
 
+
 /* ========================================
    CHECKOUT
 ======================================== */
@@ -101,12 +98,14 @@ function formatPrice(
 function Checkout() {
   const navigate = useNavigate();
 
+
   /* ======================================
      PARAMÈTRES
   ====================================== */
 
   const shopSettings =
     getShopSettings();
+
 
   /* ======================================
      PANIER
@@ -117,6 +116,7 @@ function Checkout() {
     cartTotal,
     clearCart,
   } = useCart();
+
 
   /* ======================================
      MOYEN DE PAIEMENT PAR DÉFAUT
@@ -138,6 +138,7 @@ function Checkout() {
     return "";
   };
 
+
   /* ======================================
      FORMULAIRE
   ====================================== */
@@ -151,11 +152,14 @@ function Checkout() {
     payment: getDefaultPayment(),
   });
 
+
   /* ======================================
      ERREUR
   ====================================== */
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
+
 
   /* ======================================
      TRAITEMENT
@@ -163,6 +167,7 @@ function Checkout() {
 
   const [processing, setProcessing] =
     useState(false);
+
 
   /* ======================================
      FRAIS DE LIVRAISON
@@ -175,6 +180,7 @@ function Checkout() {
       )
     : 0;
 
+
   /* ======================================
      TOTAL
   ====================================== */
@@ -182,6 +188,7 @@ function Checkout() {
   const grandTotal =
     Number(cartTotal || 0) +
     Number(shipping || 0);
+
 
   /* ======================================
      MOYENS DE PAIEMENT
@@ -221,13 +228,16 @@ function Checkout() {
     },
   ];
 
+
   const availablePayments =
     paymentOptions.filter(
       (payment) => payment.enabled
     );
 
+
   const noPaymentAvailable =
     availablePayments.length === 0;
+
 
   /* ======================================
      CHANGEMENT DU FORMULAIRE
@@ -247,103 +257,14 @@ function Checkout() {
     setError("");
   };
 
-  /* ======================================
-     VALIDATION DU STOCK
-     SUPABASE = ASYNCHRONE
-  ====================================== */
-
-  const checkStock = async () => {
-    for (const item of cart) {
-      try {
-        const product =
-          await getProductById(item.id);
-
-        if (!product) {
-          return {
-            success: false,
-            message:
-              `Le produit "${item.name}" n'existe plus dans la boutique.`,
-          };
-        }
-
-        const availableStock =
-          Number(product.stock || 0);
-
-        const requestedQuantity =
-          Number(item.quantity || 0);
-
-        if (
-          availableStock <
-          requestedQuantity
-        ) {
-          return {
-            success: false,
-            message:
-              `Stock insuffisant pour "${product.name}". Stock disponible : ${availableStock}.`,
-          };
-        }
-      } catch (error) {
-        console.error(
-          `❌ Erreur lors de la vérification du stock de "${item.name}" :`,
-          error
-        );
-
-        return {
-          success: false,
-          message:
-            `Impossible de vérifier le stock de "${item.name}". Veuillez réessayer.`,
-        };
-      }
-    }
-
-    return {
-      success: true,
-    };
-  };
 
   /* ======================================
-     DIMINUTION DU STOCK
-     SUPABASE = ASYNCHRONE
-  ====================================== */
-
-  const updateStock = async () => {
-    for (const item of cart) {
-      try {
-        const result =
-          await decreaseStock(
-            item.id,
-            Number(item.quantity || 0)
-          );
-
-        if (!result || !result.success) {
-          return {
-            success: false,
-            message:
-              result?.message ||
-              `Impossible de mettre à jour le stock de "${item.name}".`,
-          };
-        }
-      } catch (error) {
-        console.error(
-          `❌ Erreur lors de la mise à jour du stock de "${item.name}" :`,
-          error
-        );
-
-        return {
-          success: false,
-          message:
-            `Impossible de mettre à jour le stock de "${item.name}".`,
-        };
-      }
-    }
-
-    return {
-      success: true,
-    };
-  };
-
-  /* ======================================
-     ENREGISTREMENT COMMANDE
+     ENREGISTRER LA COMMANDE
+     
+     IMPORTANT :
+     Le stock, orders et sales sont
+     maintenant gérés par Supabase
+     dans UNE transaction atomique.
   ====================================== */
 
   const handleSubmit = async (e) => {
@@ -356,7 +277,9 @@ function Checkout() {
     setError("");
     setProcessing(true);
 
+
     try {
+
       /* ====================================
          INFORMATIONS CLIENT
       ==================================== */
@@ -376,6 +299,7 @@ function Checkout() {
         return;
       }
 
+
       /* ====================================
          PANIER
       ==================================== */
@@ -389,6 +313,7 @@ function Checkout() {
 
         return;
       }
+
 
       /* ====================================
          PAIEMENT
@@ -404,6 +329,7 @@ function Checkout() {
         return;
       }
 
+
       /* ====================================
          VÉRIFIER LE PAIEMENT
       ==================================== */
@@ -415,6 +341,7 @@ function Checkout() {
             form.payment
         );
 
+
       if (!selectedPayment) {
         setError(
           "Veuillez sélectionner un mode de paiement disponible."
@@ -425,42 +352,9 @@ function Checkout() {
         return;
       }
 
-      /* ====================================
-         VÉRIFICATION DU STOCK
-      ==================================== */
-
-      const stockCheck =
-        await checkStock();
-
-      if (!stockCheck.success) {
-        setError(
-          stockCheck.message
-        );
-
-        setProcessing(false);
-
-        return;
-      }
 
       /* ====================================
-         DIMINUTION DU STOCK
-      ==================================== */
-
-      const stockUpdate =
-        await updateStock();
-
-      if (!stockUpdate.success) {
-        setError(
-          stockUpdate.message
-        );
-
-        setProcessing(false);
-
-        return;
-      }
-
-      /* ====================================
-         ID DE LA COMMANDE
+         ID + DATE
       ==================================== */
 
       const orderId =
@@ -469,8 +363,16 @@ function Checkout() {
       const orderDate =
         new Date().toISOString();
 
+
       /* ====================================
-         CRÉATION DE LA COMMANDE
+         DONNÉES DE LA COMMANDE
+         
+         IMPORTANT :
+         Le prix envoyé ici sert seulement
+         de donnée initiale.
+         
+         La fonction SQL vérifie elle-même
+         le vrai prix dans Supabase.
       ==================================== */
 
       const order = {
@@ -502,10 +404,16 @@ function Checkout() {
           (item) => ({
             id: item.id,
 
-            name: item.name,
+            productId:
+              item.id,
+
+            name:
+              item.name,
 
             price:
-              Number(item.price || 0),
+              Number(
+                item.price || 0
+              ),
 
             quantity:
               Number(
@@ -513,79 +421,115 @@ function Checkout() {
               ),
 
             unit:
-              item.unit || "unité",
+              item.unit ||
+              "unité",
+
+            image:
+              item.image || "",
           })
         ),
 
         subtotal:
-          Number(cartTotal || 0),
+          Number(
+            cartTotal || 0
+          ),
 
         shipping:
-          Number(shipping || 0),
+          Number(
+            shipping || 0
+          ),
 
         total:
-          Number(grandTotal || 0),
+          Number(
+            grandTotal || 0
+          ),
 
         status:
           "En attente",
       };
 
+
       /* ====================================
-         ENREGISTRER LA COMMANDE
-         SUPABASE = ASYNCHRONE
+         TRANSACTION ATOMIQUE SUPABASE
+         
+         Cette seule fonction réalise :
+         
+         1. Vérification des produits
+         2. Vérification du stock
+         3. Verrouillage des produits
+         4. Diminution du stock
+         5. Création de orders
+         6. Création de sales
+         
+         Si une étape échoue :
+         TOUT est annulé.
+      ==================================== */
+
+      console.log(
+        "📤 Envoi de la commande à Supabase :",
+        order
+      );
+
+
+      const {
+        data,
+        error: rpcError,
+      } = await supabase.rpc(
+        "create_order_atomic",
+        {
+          p_order: order,
+        }
+      );
+
+
+      /* ====================================
+         ERREUR SUPABASE
+      ==================================== */
+
+      if (rpcError) {
+        console.error(
+          "❌ Erreur transactionnelle Supabase :",
+          rpcError
+        );
+
+        throw rpcError;
+      }
+
+
+      /* ====================================
+         VÉRIFICATION DU RÉSULTAT
+      ==================================== */
+
+      if (
+        !data ||
+        data.success !== true ||
+        !data.order
+      ) {
+        console.error(
+          "❌ Réponse invalide de create_order_atomic :",
+          data
+        );
+
+        throw new Error(
+          data?.message ||
+            "La commande n'a pas pu être enregistrée."
+        );
+      }
+
+
+      /* ====================================
+         COMMANDE RÉELLEMENT ENREGISTRÉE
       ==================================== */
 
       const savedOrder =
-        await addOrder(order);
+        data.order;
 
-      if (!savedOrder) {
-        throw new Error(
-          "La commande n'a pas pu être enregistrée."
-        );
-      }
 
-      /* ====================================
-         ENREGISTRER LA VENTE
-      ==================================== */
+      console.log(
+        "✅ Commande enregistrée atomiquement :",
+        savedOrder
+      );
 
-      try {
-        await addSale({
-          id:
-            `VTE-${Date.now()}`,
-
-          orderId:
-            order.id,
-
-          date:
-            order.date,
-
-          customer:
-            order.customer,
-
-          items:
-            order.items,
-
-          subtotal:
-            order.subtotal,
-
-          shipping:
-            order.shipping,
-
-          total:
-            order.total,
-
-          payment:
-            order.payment,
-
-          status:
-            "Enregistrée",
-        });
-      } catch (saleError) {
-        console.error(
-          "⚠️ La commande est enregistrée mais la vente n'a pas pu être enregistrée :",
-          saleError
-        );
-      }
 
       /* ====================================
          NOTIFICATION ADMIN
@@ -595,6 +539,7 @@ function Checkout() {
         shopSettings.notifications
       ) {
         try {
+
           addNotification({
             type:
               "order",
@@ -603,24 +548,57 @@ function Checkout() {
               "Nouvelle commande",
 
             message:
-              `La commande ${order.id} de ${order.customer.firstName} ${order.customer.lastName} vient d'être enregistrée.`,
+              `La commande ${savedOrder.id} de ${savedOrder.customer?.firstName || form.firstName.trim()} ${savedOrder.customer?.lastName || form.lastName.trim()} vient d'être enregistrée.`,
 
             orderId:
-              order.id,
+              savedOrder.id,
           });
-        } catch (notificationError) {
+
+        } catch (
+          notificationError
+        ) {
+
           console.error(
             "⚠️ Impossible d'ajouter la notification :",
             notificationError
           );
+
         }
       }
+
+
+      /* ====================================
+         INFORMER LES AUTRES PAGES
+         
+         Les données viennent maintenant
+         directement de Supabase.
+      ==================================== */
+
+      window.dispatchEvent(
+        new Event(
+          "ordersUpdated"
+        )
+      );
+
+      window.dispatchEvent(
+        new Event(
+          "salesUpdated"
+        )
+      );
+
+      window.dispatchEvent(
+        new Event(
+          "productsUpdated"
+        )
+      );
+
 
       /* ====================================
          VIDER LE PANIER
       ==================================== */
 
       clearCart();
+
 
       /* ====================================
          REDIRECTION
@@ -634,20 +612,49 @@ function Checkout() {
           },
         }
       );
+
+
     } catch (submitError) {
+
       console.error(
         "❌ Erreur lors de la validation de la commande :",
         submitError
       );
 
-      setError(
+
+      let message =
         submitError?.message ||
-          "Une erreur est survenue lors de l'enregistrement de la commande. Veuillez réessayer."
-      );
+        "Une erreur est survenue lors de l'enregistrement de la commande. Veuillez réessayer.";
+
+
+      /*
+        Nettoyage de quelques messages
+        techniques Supabase pour afficher
+        quelque chose de plus compréhensible.
+      */
+
+      if (
+        message.includes(
+          "Stock insuffisant"
+        )
+      ) {
+        // On conserve le message
+        // envoyé par PostgreSQL.
+      } else if (
+        message.includes(
+          "Produit introuvable"
+        )
+      ) {
+        // Même chose.
+      }
+
+
+      setError(message);
 
       setProcessing(false);
     }
   };
+
 
   /* ========================================
      PANIER VIDE
@@ -689,6 +696,7 @@ function Checkout() {
     );
   }
 
+
   /* ========================================
      RENDU PRINCIPAL
   ======================================== */
@@ -719,6 +727,7 @@ function Checkout() {
           </p>
 
         </div>
+
 
         {/* ==================================
             FORMULAIRE
@@ -763,6 +772,7 @@ function Checkout() {
 
                 </div>
 
+
                 <div className="form-group">
 
                   <label htmlFor="lastName">
@@ -785,6 +795,7 @@ function Checkout() {
 
               </div>
 
+
               <div className="form-group">
 
                 <label htmlFor="phone">
@@ -805,6 +816,7 @@ function Checkout() {
                 />
 
               </div>
+
 
               <div className="form-group">
 
@@ -828,6 +840,7 @@ function Checkout() {
               </div>
 
             </div>
+
 
             {/* ==============================
                 LIVRAISON
@@ -880,6 +893,7 @@ function Checkout() {
               </div>
 
             </div>
+
 
             {/* ==============================
                 PAIEMENT
@@ -957,6 +971,7 @@ function Checkout() {
 
             </div>
 
+
             {/* ==============================
                 ERREUR
             ============================== */}
@@ -973,6 +988,7 @@ function Checkout() {
 
           </section>
 
+
           {/* ==================================
               RÉSUMÉ
           ================================== */}
@@ -982,6 +998,7 @@ function Checkout() {
             <h2>
               Votre commande
             </h2>
+
 
             {/* ==============================
                 PRODUITS
@@ -1004,20 +1021,17 @@ function Checkout() {
                       </strong>
 
                       <span>
-
                         {item.quantity} ×{" "}
-
                         {formatPrice(
                           item.price,
                           shopSettings.currency
                         )}
-
                       </span>
 
                     </div>
 
-                    <strong>
 
+                    <strong>
                       {formatPrice(
                         Number(
                           item.price || 0
@@ -1028,7 +1042,6 @@ function Checkout() {
                           ),
                         shopSettings.currency
                       )}
-
                     </strong>
 
                   </div>
@@ -1037,6 +1050,7 @@ function Checkout() {
               )}
 
             </div>
+
 
             {/* ==============================
                 SOUS-TOTAL
@@ -1057,6 +1071,7 @@ function Checkout() {
 
             </div>
 
+
             {/* ==============================
                 LIVRAISON
             ============================== */}
@@ -1076,9 +1091,10 @@ function Checkout() {
 
             </div>
 
+
             {/* ==============================
                 TOTAL
-            ================================== */}
+            ============================== */}
 
             <div className="checkout-grand-total">
 
@@ -1095,9 +1111,10 @@ function Checkout() {
 
             </div>
 
+
             {/* ==============================
                 BOUTON
-            ================================== */}
+            ============================== */}
 
             <button
               type="submit"
@@ -1116,9 +1133,10 @@ function Checkout() {
 
             </button>
 
+
             {/* ==============================
                 RETOUR PANIER
-            ================================== */}
+            ============================== */}
 
             <Link
               to="/cart"
@@ -1136,5 +1154,6 @@ function Checkout() {
     </main>
   );
 }
+
 
 export default Checkout;
