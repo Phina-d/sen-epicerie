@@ -25,6 +25,7 @@ import OrderTracking from "./pages/OrderTracking";
 import Terms from "./pages/Terms";
 import Promotions from "./pages/Promotions";
 import AdminLogin from "./pages/AdminLogin";
+import AdminResetPassword from "./pages/AdminResetPassword";
 
 import ScrollToTopButton from "./components/ScrollToTopButton";
 
@@ -85,11 +86,17 @@ function AppContent() {
   const location = useLocation();
 
   const isAdminLogin =
-    location.pathname === "/admin/login";
+  location.pathname === "/admin/login";
+
+const isAdminResetPassword =
+  location.pathname === "/admin/reset-password";
+
+const hidePublicLayout =
+  isAdminLogin || isAdminResetPassword;
 
   return (
     <>
-      {!isAdminLogin && <Navbar />}
+      {!hidePublicLayout && <Navbar />}
 
       <Routes>
 
@@ -101,6 +108,10 @@ function AppContent() {
           path="/admin/login"
           element={<AdminLogin />}
         />
+        <Route
+  path="/admin/reset-password"
+  element={<AdminResetPassword />}
+/>
 
 
         {/* ================================
@@ -257,7 +268,7 @@ function AppContent() {
 
       <ScrollToTopButton />
 
-      {!isAdminLogin && <Footer />}
+      {!hidePublicLayout && <Footer />}
     </>
   );
 }

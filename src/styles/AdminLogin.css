@@ -163,3 +163,97 @@
     font-size: 26px;
   }
 }
+
+/* Champ mot de passe avec bouton afficher/masquer */
+.admin-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.admin-password-wrapper input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.admin-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  color: #16834b;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.admin-password-toggle:hover {
+  background: rgba(22, 131, 75, 0.1);
+}
+
+.admin-password-toggle:focus-visible {
+  outline: 2px solid #16834b;
+  outline-offset: 2px;
+}
+
+.admin-password-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-password-toggle svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+/* =========================================
+   LIEN MOT DE PASSE OUBLIÉ
+========================================= */
+
+.admin-forgot-password {
+  display: block;
+  width: fit-content;
+  margin: 18px auto 0;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #16834b;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.admin-forgot-password:hover {
+  color: #0d6035;
+  background-color: rgba(22, 131, 75, 0.08);
+  text-decoration: underline;
+}
+
+.admin-forgot-password:focus-visible {
+  outline: 2px solid #16834b;
+  outline-offset: 3px;
+}
+
+.admin-forgot-password:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
